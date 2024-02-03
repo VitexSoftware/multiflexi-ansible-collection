@@ -1,0 +1,9 @@
+---
+# tasks file for multiflexi_server
+- name: Install MultiFlexi multi package
+  ansible.builtin.ansible.package:
+    name:  'multiflexi-{{ db_type | default("sqlite") }}'
+    state: present
+  when: db_type in database_engines
+  tags: ['multiflexi']
+  
