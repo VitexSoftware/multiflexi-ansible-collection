@@ -1,0 +1,7 @@
+---
+# defaults file for multiflexi_server
+database_engines:
+  - sqlite
+  - pgsql
+  - mysql
+
