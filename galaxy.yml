@@ -4,7 +4,7 @@ version: 1.0.0
 
 readme: README.md
 authors:
-  - Vítězslav Dvořá <vitex@vitexsoftware.com>
+  - Vítězslav Dvořák <vitex@vitexsoftware.com>
 
 description: This is a collection of roles for managing a MultiFlexi server
 
