@@ -1,9 +1,8 @@
 # Vitexsoftware Multiflexi Collection
 
-This repository contains the `vitexsoftware.multiflexi` Ansible Collection.
+This repository contains the `vitexsus.multiflexi` Ansible Collection.
 
-<!--start requires_ansible-->
-<!--end requires_ansible-->
+install the `python3-mysql.connector` package on multifleix machine before use
 
 ## External requirements
 
@@ -11,32 +10,32 @@ Some modules and plugins require external libraries. Please check the requiremen
 
 ## Included content
 
-<!--start collection content-->
-<!--end collection content-->
+* multiflexi_server role install multiflexi server on your debian or ubuntu server
+* multiflexi.company ansible module create or remove company in multiflexi for you
 
 ## Using this collection
 
 ```bash
-    ansible-galaxy collection install vitexsoftware.multiflexi
+    ansible-galaxy collection install vitexsus.multiflexi
 ```
 
 You can also include it in a `requirements.yml` file and install it via `ansible-galaxy collection install -r requirements.yml` using the format:
 
 ```yaml
 collections:
-  - name: vitexsoftware.multiflexi
+  - name: vitexsus.multiflexi
 ```
 
 To upgrade the collection to the latest available version, run the following command:
 
 ```bash
-ansible-galaxy collection install vitexsoftware.multiflexi --upgrade
+ansible-galaxy collection install vitexsus.multiflexi --upgrade
 ```
 
 You can also install a specific version of the collection, for example, if you need to downgrade when something is broken in the latest version (please report an issue in this repository). Use the following syntax where `X.Y.Z` can be any [available version](https://galaxy.ansible.com/vitexsoftware/multiflexi):
 
 ```bash
-ansible-galaxy collection install vitexsoftware.multiflexi:==X.Y.Z
+ansible-galaxy collection install vitexsus.multiflexi:==X.Y.Z
 ```
 
 See [Ansible Using collections](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html) for more details.
@@ -47,7 +46,9 @@ See the [changelog](https://github.com/ansible-collections/REPONAMEHERE/tree/mai
 
 ## Roadmap
 
-<!-- Optional. Include the roadmap for this collection, and the proposed release/versioning strategy so users can anticipate the upgrade/update cycle. -->
+* Initial Functionality - v1.0.0
+* Extended Functionality - v1.2.0
+* Full functionality - v1.3.0
 
 ## More information
 

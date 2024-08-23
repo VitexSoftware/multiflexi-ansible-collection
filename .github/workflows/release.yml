@@ -1,5 +1,5 @@
 ---
-name: Release vitexsoftware.multiflexi
+name: Release vitexsus.multiflexi
 
 on: # yamllint disable-line rule:truthy
   release:
