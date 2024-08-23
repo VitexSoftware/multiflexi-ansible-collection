@@ -5,3 +5,22 @@ line-length = 100
 addopts = ["-vvv", "-n", "2", "--log-level", "WARNING", "--color", "yes"]
 filterwarnings = ['ignore:AnsibleCollectionFinder has already been configured']
 testpaths = ["tests"]
+
+[tool.poetry]
+name = "multiflexi-ansible-collection"
+version = "0.1.0"
+description = "MultiFlexi ansible collection"
+authors = ["CyberVitexus <info@vitexsoftware.cz>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+mysql-connector-python = "^9.0.0"
+
+[tool.poetry.group.dev.dependencies]
+ansible-lint = "^24.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
