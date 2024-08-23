@@ -182,30 +182,6 @@ class MultiFlexi:
             return sqlite3.connect(self.db_database)
 
 
-#MariaDB [multiflexi]> describe company;
-# +-----------+------------------+------+-----+---------+----------------+
-# | Field     | Type             | Null | Key | Default | Extra          |
-# +-----------+------------------+------+-----+---------+----------------+
-# | id        | int(11) unsigned | NO   | PRI | NULL    | auto_increment |
-# | enabled   | tinyint(1)       | YES  |     | 0       |                |
-# | settings  | text             | YES  |     | NULL    |                |
-# | logo      | longtext         | YES  |     | ''      |                |
-# | server    | int(11)          | NO   | MUL | 0       |                |
-# | name      | varchar(32)      | YES  | MUL | NULL    |                |
-# | ic        | varchar(32)      | YES  |     | NULL    |                |
-# | company   | varchar(255)     | YES  |     | NULL    |                |
-# | rw        | tinyint(1)       | YES  |     | NULL    |                |
-# | setup     | tinyint(1)       | YES  |     | 0       |                |
-# | webhook   | tinyint(1)       | YES  |     | NULL    |                |
-# | DatCreate | datetime         | YES  |     | NULL    |                |
-# | DatUpdate | datetime         | YES  |     | NULL    |                |
-# | customer  | int(11)          | YES  | MUL | NULL    |                |
-# | email     | varchar(64)      | YES  |     | NULL    |                |
-# | code      | varchar(10)      | NO   |     |         |                |
-# +-----------+------------------+------+-----+---------+----------------+
-# 16 rows in set (0.010 sec)
-
-
 class Company:
     def __init__(self, id, enabled, settings, logo, server, name, ic, company, rw, setup, webhook, DatCreate, DatUpdate, customer, email, code):
         self.id = id
@@ -389,9 +365,63 @@ def create_company(module, company):
     else:
         return False
 
+#MariaDB [multiflexi]> describe company;
+# +-----------+------------------+------+-----+---------+----------------+
+# | Field     | Type             | Null | Key | Default | Extra          |
+# +-----------+------------------+------+-----+---------+----------------+
+# | id        | int(11) unsigned | NO   | PRI | NULL    | auto_increment |
+# | enabled   | tinyint(1)       | YES  |     | 0       |                |
+# | settings  | text             | YES  |     | NULL    |                |
+# | logo      | longtext         | YES  |     | ''      |                |
+# | server    | int(11)          | NO   | MUL | 0       |                |
+# | name      | varchar(32)      | YES  | MUL | NULL    |                |
+# | ic        | varchar(32)      | YES  |     | NULL    |                |
+# | company   | varchar(255)     | YES  |     | NULL    |                |
+# | rw        | tinyint(1)       | YES  |     | NULL    |                |
+# | setup     | tinyint(1)       | YES  |     | 0       |                |
+# | webhook   | tinyint(1)       | YES  |     | NULL    |                |
+# | DatCreate | datetime         | YES  |     | NULL    |                |
+# | DatUpdate | datetime         | YES  |     | NULL    |                |
+# | customer  | int(11)          | YES  | MUL | NULL    |                |
+# | email     | varchar(64)      | YES  |     | NULL    |                |
+# | code      | varchar(10)      | NO   |     |         |                |
+# +-----------+------------------+------+-----+---------+----------------+
+# 16 rows in set (0.010 sec)
+
+
+
 def update_company_in_db(module, company):
     db = MultiFlexi().getDb()
     cursor = db.cursor()
+    if company.enabled:
+        company.enabled = 1
+    else:
+        company.enabled = 0
+    company.settings = str(company.settings)
+    company.logo = str(company.logo)
+    company.server = int(company.server)
+    company.name = str(company.name)[:32]
+    company.ic = str(company.ic)[:32]
+    company.company = str(company.company)[:255]
+    if company.rw:
+        company.rw = 1
+    else:
+        company.rw = 0
+    if company.setup:
+        company.setup = 1
+    else:
+        company.setup = 0
+    if company.webhook:
+        company.webhook = 1
+    else:
+        company.webhook = 0
+    if company.customer:
+        company.customer = int(company.customer)
+    else:
+        company.customer = None
+    company.email = str(company.email)[:64]
+    company.code = str(company.code)[:10]
+
     query = f"UPDATE company SET name = '{company.name}', enabled = '{company.enabled}', settings = '{company.settings}', logo = '{company.logo}', server = '{company.server}', ic = '{company.ic}', company = '{company.company}', rw = '{company.rw}', setup = '{company.setup}', webhook = '{company.webhook}', DatUpdate = '{datetime.now()}', customer = '{company.customer}', email = '{company.email}', code = '{company.code}' WHERE id = '{company.id}'"
     cursor.execute(query)
     db.commit()
