@@ -1,4 +1,4 @@
-"""A hello-world filter plugin in vitexsoftware.multiflexi."""
+"""A hello-world filter plugin in vitexsus.multiflexi."""
 
 from __future__ import absolute_import, annotations, division, print_function
 
@@ -30,7 +30,7 @@ EXAMPLES = """
 
 - name: Display a hello message
   ansible.builtin.debug:
-    msg: "{{ 'ansible-creator' | vitexsoftware.multiflexi.hello_world }}"
+    msg: "{{ 'ansible-creator' | vitexsus.multiflexi.hello_world }}"
 """
 
 
