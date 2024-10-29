@@ -8,6 +8,8 @@ from __future__ import absolute_import, division, print_function
 import json
 import mysql.connector
 import sqlite3
+from ansible.module_utils.basic import AnsibleModule
+from datetime import datetime
 # import psycopg2
 
 __metaclass__ = type
@@ -140,9 +142,6 @@ company:
 """
 
 
-from ansible.module_utils.basic import AnsibleModule
-from datetime import datetime
-
 class MultiFlexi:
     def __init__(self):
         env_file = '/etc/multiflexi/multiflexi.env'
@@ -169,6 +168,7 @@ class MultiFlexi:
                     self.db_username = value
                 elif key == 'DB_PASSWORD':
                     self.db_password = value
+
     def getDb(self):
         db_type = self.db_connection
         if db_type == 'mysql':
@@ -311,7 +311,6 @@ def run_module():
     )
 
 
-
     result = dict(
         changed=False,
         company=None
@@ -343,6 +342,7 @@ def run_module():
 
     module.exit_json(**result)
 
+
 def create_company(module, company):
     if not company.code:
         code = module.params['code']
@@ -365,7 +365,7 @@ def create_company(module, company):
     else:
         return False
 
-#MariaDB [multiflexi]> describe company;
+# MariaDB [multiflexi]> describe company;
 # +-----------+------------------+------+-----+---------+----------------+
 # | Field     | Type             | Null | Key | Default | Extra          |
 # +-----------+------------------+------+-----+---------+----------------+
@@ -387,7 +387,6 @@ def create_company(module, company):
 # | code      | varchar(10)      | NO   |     |         |                |
 # +-----------+------------------+------+-----+---------+----------------+
 # 16 rows in set (0.010 sec)
-
 
 
 def update_company_in_db(module, company):
@@ -428,6 +427,7 @@ def update_company_in_db(module, company):
     cursor.close()
     db.close()
 
+
 def delete_company(module, company):
     if company.code:
         command = f'multiflexi-cli remove company {company.code}'
@@ -435,6 +435,7 @@ def delete_company(module, company):
         return True
     else:
         return False
+
 
 def get_company_by_code(code):
     db = MultiFlexi().getDb()
@@ -467,10 +468,10 @@ def get_company_by_code(code):
     else:
         return Company(None, 0, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
+
 def main():
    run_module()
 
 
 if __name__ == '__main__':
    main()
-
