@@ -1,2 +1,5 @@
 ---
-# handlers file for multiflexi_server
+- name: Restart apache2
+  service: 
+    name: apache2 
+    state: restarted

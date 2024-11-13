@@ -1,8 +1,63 @@
 ---
-# tasks file for multiflexi_server
+- name: Import the vitexsoftware apt key
+  ansible.builtin.apt_key:
+    url: https://repo.vitexsoftware.com/keyring.gpg
+    state: present
+- name: Add VitexSoftware repo for {{ ansible_distribution_release }}
+  ansible.builtin.apt_repository:
+    repo: deb http://repo.vitexsoftware.com {{ ansible_distribution_release }} main backports
+    state: present
+- name: Install basic packages
+  ansible.builtin.apt:
+    name:
+      [
+        "apt-repo-suryorg",
+        "mariadb-server",
+        "apache2",
+        "libapache2-mod-php",
+        "php-tools",
+        "php-common",
+        "python3-certbot-apache",
+      ]
+    state: present
+    update_cache: true
+- name: Enabled mod_rewrite
+  community.general.apache2_module:
+    name: rewrite
+    state: present
+- name: Start mysql server and enable it on reboot
+  ansible.builtin.service:
+    name: mysql
+    state: started
+    enabled: true # debian: mysql
+
+# - name: Install system TODO
+#   ansible.builtin.apt:
+#     name: ["abraflexi-webhook-acceptor-mysql", "multiflexi-mysql"]
+#     state: present
+
 - name: Install MultiFlexi multi package
   ansible.builtin.apt:
     name: 'multiflexi-{{ db_type | default("sqlite") }}'
     state: present
   when: db_type in multiflexi_server_database_engines
   tags: ['multiflexi']
+
+- name: Check PHP versions using phpquery -V
+  ansible.builtin.command: /usr/sbin/phpquery -V
+  register: phpversions
+  changed_when: false
+  failed_when: false
+  ignore_errors: true
+
+- name: Convert PHP versions list to dictionary
+  ansible.builtin.set_fact:
+    phpversions_dict: "{{ dict(phpversions.stdout_lines | map('regex_replace', '^(.*)$', '\\1') | list | zip(phpversions.stdout_lines)) }}"
+
+- name: Enable mail.add_x_header in php.ini
+  ansible.builtin.lineinfile:
+    path: /etc/php/{{ item.key }}/cli/php.ini
+    line: mail.add_x_header = On
+    state: present
+  with_dict: "{{ phpversions_dict }}"
+  when: phpversions.stdout_lines is defined
