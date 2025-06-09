@@ -1,0 +1,4 @@
+---
+- name: Create an application using MultiFlexi API
+  debug:
+    msg: "Application creation task would go here."

@@ -1,0 +1,4 @@
+---
+- name: Manage topic using MultiFlexi API
+  debug:
+    msg: "Topic management task would go here."

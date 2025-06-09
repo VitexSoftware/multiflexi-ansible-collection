@@ -1,0 +1,61 @@
+---
+- name: Test MultiFlexi Topic Ansible Module
+  hosts: localhost
+  gather_facts: false
+  vars:
+    api_url: "https://demo.multiflexi.eu/api/VitexSoftware/MultiFlexi/1.0.0"
+    username: "admin"
+    password: "secret"
+
+  tasks:
+    - name: List all topics
+      topic:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+      register: topics_result
+
+    - name: Assert topics list result
+      assert:
+        that:
+          - topics_result.topic is defined
+
+    - name: Get topic by ID (if any exist)
+      topic:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        topic_id: "{{ (topics_result.topic[0].id if topics_result.topic|length > 0 else 1) }}"
+      register: topic_get
+      when: topics_result.topic|length > 0
+
+    - name: Assert topic get result (if any exist)
+      assert:
+        that:
+          - topic_get.topic.id is defined
+      when: topics_result.topic|length > 0
+
+    - name: Update topic (simulate, only if any exist)
+      topic:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        topic_id: "{{ (topics_result.topic[0].id if topics_result.topic|length > 0 else 1) }}"
+        name: "UpdatedTopic"
+        description: "Updated by test"
+        color: "#00ff00"
+      register: topic_update
+      when: topics_result.topic|length > 0
+
+    - name: Assert topic update result (if any exist)
+      assert:
+        that:
+          - topic_update.changed
+          - topic_update.topic is defined
+          - topic_update.topic.name == 'UpdatedTopic'
+          - topic_update.topic.description == 'Updated by test'
+          - topic_update.topic.color == '#00ff00'
+      when: topics_result.topic|length > 0

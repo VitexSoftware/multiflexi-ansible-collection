@@ -1,0 +1,60 @@
+---
+- name: Test MultiFlexi RunTemplate Ansible Module
+  hosts: localhost
+  gather_facts: false
+  vars:
+    api_url: "https://demo.multiflexi.eu/api/VitexSoftware/MultiFlexi/1.0.0"
+    username: "admin"
+    password: "secret"
+    app_id: 1
+    company_id: 1
+
+  tasks:
+    - name: Create runtemplate
+      runtemplate:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        name: "TestTemplate"
+        app_id: "{{ app_id }}"
+        company_id: "{{ company_id }}"
+        active: true
+        iterv: "daily"
+        prepared: true
+        success: "Success message"
+        fail: "Fail message"
+      register: runtemplate_result
+
+    - name: Assert runtemplate create result
+      assert:
+        that:
+          - runtemplate_result.changed
+          - runtemplate_result.runtemplate is defined
+
+    - name: Get runtemplate by ID
+      runtemplate:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        runtemplate_id: "{{ runtemplate_result.runtemplate.id | default(1) }}"
+      register: runtemplate_get
+
+    - name: Assert runtemplate get result
+      assert:
+        that:
+          - runtemplate_get.runtemplate.id is defined
+
+    - name: List all runtemplates
+      runtemplate:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+      register: runtemplates_list
+
+    - name: Assert runtemplates list result
+      assert:
+        that:
+          - runtemplates_list.runtemplate is defined

@@ -1,0 +1,4 @@
+---
+- name: Create a user using MultiFlexi API
+  debug:
+    msg: "User creation task would go here."
