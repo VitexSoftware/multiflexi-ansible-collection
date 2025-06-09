@@ -1,0 +1,57 @@
+---
+- name: Test MultiFlexi User Ansible Module
+  hosts: localhost
+  gather_facts: false
+  vars:
+    api_url: "https://demo.multiflexi.eu/api/VitexSoftware/MultiFlexi/1.0.0"
+    username: "admin"
+    password_api: "secret"
+
+  tasks:
+    - name: Create user
+      user:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password_api: "{{ password_api }}"
+        email: "testuser@company.com"
+        firstname: "Test"
+        lastname: "User"
+        login: "testuser"
+        password: "userpass"
+        enabled: true
+        settings: "{}"
+      register: user_result
+
+    - name: Assert user create result
+      assert:
+        that:
+          - user_result.changed
+          - user_result.user is defined
+
+    - name: Get user by ID
+      user:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password_api: "{{ password_api }}"
+        user_id: "{{ user_result.user.id | default(1) }}"
+      register: user_get
+
+    - name: Assert user get result
+      assert:
+        that:
+          - user_get.user.id is defined
+
+    - name: List all users
+      user:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password_api: "{{ password_api }}"
+      register: users_list
+
+    - name: Assert users list result
+      assert:
+        that:
+          - users_list.user is defined

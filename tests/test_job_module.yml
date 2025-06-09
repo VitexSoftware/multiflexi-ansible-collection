@@ -1,0 +1,58 @@
+---
+- name: Test MultiFlexi Job Ansible Module
+  hosts: localhost
+  gather_facts: false
+  vars:
+    api_url: "https://demo.multiflexi.eu/api/VitexSoftware/MultiFlexi/1.0.0"
+    username: "admin"
+    password: "secret"
+    app_id: 1
+    company_id: 1
+
+  tasks:
+    - name: Create job
+      job:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        app_id: "{{ app_id }}"
+        company_id: "{{ company_id }}"
+        command: "echo Hello"
+        schedule: "* * * * *"
+        executor: "Native"
+        app_version: "1.0"
+      register: job_result
+
+    - name: Assert job create result
+      assert:
+        that:
+          - job_result.changed
+          - job_result.job is defined
+
+    - name: Get job by ID
+      job:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        job_id: "{{ job_result.job.id | default(1) }}"
+      register: job_get
+
+    - name: Assert job get result
+      assert:
+        that:
+          - job_get.job.id is defined
+
+    - name: List all jobs
+      job:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+      register: jobs_list
+
+    - name: Assert jobs list result
+      assert:
+        that:
+          - jobs_list.job is defined

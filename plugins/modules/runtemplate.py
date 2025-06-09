@@ -4,108 +4,30 @@
 # Copyright: (c) 2024, Dvořák Vítězslav <info@vitexsoftware.cz>
 
 from ansible.module_utils.basic import AnsibleModule
+import requests
 
-DOCUMENTATION = """
----
-module: runtemplate
-
-short_description: Manage RunTemplate in Multiflexi
-
-description:
-    - This module allows you to create or delete RunTemplate in Multiflexi
-
-author:
-    - Vitex (@Vitexus)
-
-requirements:
-    - "python >= 3.9"
-
-version_added: 2.1.0
-
-options:
-    state:
-        description:
-            - The state of the RunTemplate
-        required: true
-        type: str
-        choices: ['present', 'absent']
-    company:
-        description:
-            - The company associated with the RunTemplate
-        required: true
-        type: str
-    application:
-        description:
-            - The application associated with the RunTemplate
-        required: true
-        type: str
-    interval:
-        description:
-            - The interval for the RunTemplate
-        required: true
-        type: str
-    config:
-        description:
-            - The configuration for the RunTemplate
-        required: true
-        type: dict
-    name:
-        description:
-            - The name of the RunTemplate
-        required: true
-        type: str
-"""
-
-EXAMPLES = """
-# Create RunTemplate
-- name: Create RunTemplate
-  runtemplate:
-    state: 'present'
-    company: 'ExampleCompany'
-    application: 'ExampleApp'
-    interval: 'daily'
-    config: {'key': 'value'}
-    name: 'ExampleTemplate'
-
-# Delete RunTemplate
-- name: Delete RunTemplate
-  runtemplate:
-    state: 'absent'
-    company: 'ExampleCompany'
-    application: 'ExampleApp'
-    name: 'ExampleTemplate'
-"""
-
-RETURN = """
-runtemplate:
-    description: The RunTemplate
-    type: dict
-    returned: always
-    sample:
-        {
-            "state": "present",
-            "company": "ExampleCompany",
-            "application": "ExampleApp",
-            "interval": "daily",
-            "config": {"key": "value"},
-            "name": "ExampleTemplate"
-        }
-"""
 
 def run_module():
     module_args = dict(
-        state=dict(type='str', required=True, choices=['present', 'absent']),
-        company=dict(type='str', required=True),
-        application=dict(type='str', required=True),
-        interval=dict(type='str', required=True),
-        config=dict(type='dict', required=True),
-        name=dict(type='str', required=True)
+        state=dict(type='str', required=True,
+                   choices=['present', 'absent', 'get']),
+        runtemplate_id=dict(type='int', required=False),
+        name=dict(type='str', required=False),
+        app_id=dict(type='int', required=False),
+        company_id=dict(type='int', required=False),
+        active=dict(type='bool', required=False),
+        iterv=dict(type='str', required=False),
+        prepared=dict(type='bool', required=False),
+        success=dict(type='str', required=False),
+        fail=dict(type='str', required=False),
+        api_url=dict(type='str', required=True),
+        username=dict(type='str', required=True),
+        password=dict(type='str', required=True, no_log=True),
     )
 
     result = dict(
         changed=False,
-        original_message='',
-        message=''
+        runtemplate=None
     )
 
     module = AnsibleModule(
@@ -113,28 +35,47 @@ def run_module():
         supports_check_mode=True
     )
 
-    state = module.params['state']
-    company = module.params['company']
-    application = module.params['application']
-    interval = module.params['interval']
-    config = module.params['config']
-    name = module.params['name']
+    headers = {'Content-Type': 'application/json'}
+    auth = (module.params['username'], module.params['password'])
+    api_url = module.params['api_url']
+    suffix = 'json'
 
-    # Placeholder for actual implementation
-    if state == 'present':
-        result['changed'] = True
-        result['message'] = f"RunTemplate '{name}' for application '{application}' in company '{company}' with interval '{interval}' has been defined."
-    elif state == 'absent':
-        result['changed'] = True
-        result['message'] = f"RunTemplate '{name}' for application '{application}' in company '{company}' has been removed."
-
-    if module.check_mode:
+    if module.params['state'] == 'get':
+        if module.params['runtemplate_id']:
+            url = (
+                f"{api_url}/runtemplate/"
+                f"{module.params['runtemplate_id']}.{suffix}"
+            )
+            resp = requests.get(url, auth=auth, headers=headers)
+            result['runtemplate'] = resp.json()
+        else:
+            url = f"{api_url}/runtemplates.{suffix}"
+            resp = requests.get(url, auth=auth, headers=headers)
+            result['runtemplate'] = resp.json()
         module.exit_json(**result)
+    elif module.params['state'] == 'present':
+        data = {k: v for k, v in module.params.items()
+                if k in [
+                    'runtemplate_id', 'name', 'app_id', 'company_id', 'active',
+                    'iterv', 'prepared', 'success', 'fail'
+                ] and v is not None}
+        url = f"{api_url}/runtemplate"
+        resp = requests.post(url, auth=auth, headers=headers, json=data)
+        result['changed'] = True
+        result['runtemplate'] = resp.json()
+        module.exit_json(**result)
+    elif module.params['state'] == 'absent':
+        # No DELETE endpoint in OpenAPI, so just simulate
+        result['changed'] = False
+        result['message'] = 'Delete not implemented in API.'
+        module.exit_json(**result)
+    else:
+        module.fail_json(msg="Invalid state")
 
-    module.exit_json(**result)
 
 def main():
     run_module()
+
 
 if __name__ == '__main__':
     main()

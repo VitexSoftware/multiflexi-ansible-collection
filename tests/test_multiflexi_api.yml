@@ -1,0 +1,171 @@
+---
+- name: Test MultiFlexi API Ansible Modules
+  hosts: localhost
+  gather_facts: false
+  vars:
+    api_url: "https://demo.multiflexi.eu/api/VitexSoftware/MultiFlexi/1.0.0"
+    username: "admin"
+    password: "secret"
+
+  tasks:
+    - name: Create application
+      application:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        name: "TestApp"
+        executable: "testapp"
+        tags:
+          - test
+        status: available
+      register: app_result
+
+    - name: Get application by ID
+      application:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        app_id: "{{ app_result.app.id | default(1) }}"
+      register: app_get
+
+    - name: List all applications
+      application:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+
+    - name: Create company
+      company:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        name: "TestCompany"
+        code: "TSTC"
+        email: "test@company.com"
+        enabled: true
+      register: company_result
+
+    - name: Get company by ID
+      company:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        company_id: "{{ company_result.company.id | default(1) }}"
+      register: company_get
+
+    - name: List all companies
+      company:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+
+    - name: Create runtemplate
+      runtemplate:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        name: "TestTemplate"
+        app_id: "{{ app_result.app.id | default(1) }}"
+        company_id: "{{ company_result.company.id | default(1) }}"
+        active: true
+      register: runtemplate_result
+
+    - name: Get runtemplate by ID
+      runtemplate:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        runtemplate_id: "{{ runtemplate_result.runtemplate.id | default(1) }}"
+      register: runtemplate_get
+
+    - name: List all runtemplates
+      runtemplate:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+
+    - name: Create user
+      user:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password_api: "{{ password }}"
+        email: "testuser@company.com"
+        firstname: "Test"
+        lastname: "User"
+        login: "testuser"
+        password: "userpass"
+      register: user_result
+
+    - name: Get user by ID
+      user:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password_api: "{{ password }}"
+        user_id: "{{ user_result.user.id | default(1) }}"
+      register: user_get
+
+    - name: List all users
+      user:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password_api: "{{ password }}"
+
+    - name: Create job
+      job:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        app_id: "{{ app_result.app.id | default(1) }}"
+        company_id: "{{ company_result.company.id | default(1) }}"
+        command: "echo Hello"
+      register: job_result
+
+    - name: Get job by ID
+      job:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        job_id: "{{ job_result.job.id | default(1) }}"
+      register: job_get
+
+    - name: List all jobs
+      job:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+
+    - name: Get all credentials
+      credential:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+
+    - name: Get all credential types
+      credential_type:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+
+    - name: Get all topics
+      topic:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"

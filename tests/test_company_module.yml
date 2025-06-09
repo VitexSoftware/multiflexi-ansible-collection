@@ -1,0 +1,68 @@
+---
+- name: Test MultiFlexi Company Ansible Module
+  hosts: localhost
+  gather_facts: false
+  vars:
+    api_url: "https://demo.multiflexi.eu/api/VitexSoftware/MultiFlexi/1.0.0"
+    username: "admin"
+    password: "secret"
+
+  tasks:
+    - name: Create company
+      company:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        name: "TestCompany"
+        code: "TSTC"
+        email: "test@company.com"
+        enabled: true
+      register: company_result
+
+    - name: Get company by ID
+      company:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        company_id: "{{ company_result.company.id | default(1) }}"
+      register: company_get
+
+    - name: List all companies
+      company:
+        state: get
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+
+    - name: Simulate company removal (no DELETE in API)
+      company:
+        state: absent
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        code: "TSTC"
+      register: company_remove
+
+    - name: Assert company create result
+      ansible.builtin.assert:
+        that:
+          - company_result.changed
+          - company_result.company.name == 'TestCompany'
+
+    - name: Assert company get result
+      ansible.builtin.assert:
+        that:
+          - company_get.company.id is defined
+
+    - name: Assert company list result
+      ansible.builtin.assert:
+        that:
+          - company_get.company is defined
+
+    - name: Assert company remove result (simulated)
+      ansible.builtin.assert:
+        that:
+          - not company_remove.changed
+          - company_remove.message == 'Delete not implemented in API.'
