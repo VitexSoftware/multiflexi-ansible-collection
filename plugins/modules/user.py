@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-import requests
+import subprocess
+import json
 
 DOCUMENTATION = """
 ---
@@ -117,6 +118,13 @@ user:
     returned: always
 """
 
+def run_cli_command(args):
+    try:
+        result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"multiflexi-cli error: {e.stderr.strip()}")
+
 def run_module():
     module_args = dict(
         state=dict(type='str', required=True, choices=['present', 'get']),
@@ -143,33 +151,41 @@ def run_module():
         supports_check_mode=True
     )
 
-    headers = {'Content-Type': 'application/json'}
-    auth = (module.params['username'], module.params['password_api'])
-    api_url = module.params['api_url']
-    suffix = 'json'
+    state = module.params['state']
+    cli_base = ['multiflexi-cli', 'user']
 
-    if module.params['state'] == 'get':
-        if module.params['user_id']:
-            url = f"{api_url}/user/{module.params['user_id']}.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['user'] = resp.json()
+    try:
+        if state == 'get':
+            if module.params['user_id']:
+                args = cli_base + ['get', '--id', str(module.params['user_id']), '--format', 'json']
+                output = run_cli_command(args)
+                result['user'] = json.loads(output)
+            else:
+                args = cli_base + ['list', '--format', 'json']
+                output = run_cli_command(args)
+                result['user'] = json.loads(output)
+            module.exit_json(**result)
+        elif state == 'present':
+            # If user_id is provided, update; else, create
+            if module.params.get('user_id'):
+                args = cli_base + ['update', '--id', str(module.params['user_id'])]
+                result['changed'] = True
+            else:
+                args = cli_base + ['create']
+                result['changed'] = True
+            # Add optional parameters
+            for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'password', 'login']:
+                value = module.params.get(param)
+                if value is not None:
+                    args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
+            args += ['--format', 'json']
+            output = run_cli_command(args)
+            result['user'] = json.loads(output)
+            module.exit_json(**result)
         else:
-            url = f"{api_url}/users.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['user'] = resp.json()
-        module.exit_json(**result)
-    elif module.params['state'] == 'present':
-        data = {k: v for k, v in module.params.items() if k in [
-            'user_id', 'enabled', 'settings', 'email', 'firstname', 'lastname',
-            'password', 'login'
-        ] and v is not None}
-        url = f"{api_url}/user/"
-        resp = requests.post(url, auth=auth, headers=headers, json=data)
-        result['changed'] = True
-        result['user'] = resp.json()
-        module.exit_json(**result)
-    else:
-        module.fail_json(msg="Invalid state")
+            module.fail_json(msg="Invalid state")
+    except Exception as e:
+        module.fail_json(msg=str(e))
 
 def main():
     run_module()

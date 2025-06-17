@@ -1,0 +1,113 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: multiflexi-ansible-collection
+Upstream-Contact: <preferred name and address to reach the upstream project>
+Source: <url://example.com>
+#
+# Please double check copyright with the licensecheck(1) command.
+
+Files:     .devcontainer/devcontainer.json
+           .devcontainer/docker/devcontainer.json
+           .devcontainer/podman/devcontainer.json
+           .github/workflows/release.yml
+           .github/workflows/tests.yml
+           .gitignore
+           .isort.cfg
+           .pre-commit-config.yaml
+           .prettierignore
+           .vscode/extensions.json
+           .vscode/settings.json
+           CHANGELOG.rst
+           CODE_OF_CONDUCT.md
+           CONTRIBUTING
+           MAINTAINERS
+           README.md
+           changelogs/config.yaml
+           devfile.yaml
+           docs/.keep
+           docs/docsite/links.yml
+           extensions/eda/rulebooks/rulebook.yml
+           extensions/molecule/integration_hello_world/molecule.yml
+           extensions/molecule/utils/playbooks/converge.yml
+           extensions/molecule/utils/playbooks/noop.yml
+           extensions/molecule/utils/vars/vars.yml
+           galaxy.yml
+           meta/runtime.yml
+           plugins/README.md
+           plugins/action/__init__.py
+           plugins/cache/__init__.py
+           plugins/filter/__init__.py
+           plugins/filter/__pycache__/hello_world.cpython-311.pyc
+           plugins/filter/hello_world.py
+           plugins/inventory/__init__.py
+           plugins/module_utils/__init__.py
+           plugins/modules/__init__.py
+           plugins/plugin_utils/__init__.py
+           plugins/sub_plugins/__init__.py
+           plugins/test/__init__.py
+           pyproject.toml
+           requirements.txt
+           roles/multiflexi_server/README.md
+           roles/multiflexi_server/defaults/main.yml
+           roles/multiflexi_server/handlers/main.yml
+           roles/multiflexi_server/meta/main.yml
+           roles/multiflexi_server/tasks/main.yml
+           roles/multiflexi_server/tests/inventory
+           roles/multiflexi_server/tests/test.yml
+           roles/multiflexi_server/vars/main.yml
+           roles/run/README.md
+           roles/run/defaults/main.yml
+           roles/run/files/.keep
+           roles/run/handlers/main.yml
+           roles/run/tasks/main.yml
+           roles/run/templates/.keep
+           roles/run/tests/inventory
+           roles/run/vars/main.yml
+           test-requirements.txt
+           tests/.gitignore
+           tests/company_create.json
+           tests/company_remove.json
+           tests/integration/__init__.py
+           tests/integration/targets/hello_world/tasks/main.yml
+           tests/integration/test_integration.py
+           tests/unit/.keep
+           tests/unit/__init__.py
+           tests/unit/test_basic.py
+           tox-ansible.ini
+Copyright: __NO_COPYRIGHT_NOR_LICENSE__
+License:   __NO_COPYRIGHT_NOR_LICENSE__
+
+Files:     roles/run/meta/main.yml
+Copyright: __NO_COPYRIGHT__ in: roles/run/meta/main.yml
+License:   __UNKNOWN__
+ # If the issue tracker for your role is not on github, uncomment the
+ # next line and provide a value
+
+Files:     plugins/modules/company.py
+Copyright: : (c) 2024, Dvořák Vítězslav <info@vitexsoftware.cz>
+License:   __NO_LICENSE__
+
+#----------------------------------------------------------------------------
+# Files marked as NO_LICENSE_TEXT_FOUND may be covered by the following
+# license/copyright files.
+
+#----------------------------------------------------------------------------
+# License file: LICENSE
+ Copyright (c) 2024 VitexSoftware
+ .
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.

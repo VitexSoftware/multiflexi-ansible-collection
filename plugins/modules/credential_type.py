@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-import requests
+import subprocess
+import json
 
 DOCUMENTATION = """
 ---
@@ -100,6 +101,13 @@ credential_type:
     returned: always
 """
 
+def run_cli_command(args):
+    try:
+        result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"multiflexi-cli error: {e.stderr.strip()}")
+
 def run_module():
     module_args = dict(
         state=dict(type='str', required=True, choices=['present', 'get']),
@@ -123,34 +131,37 @@ def run_module():
         supports_check_mode=True
     )
 
-    headers = {'Content-Type': 'application/json'}
-    auth = (module.params['username'], module.params['password'])
-    api_url = module.params['api_url']
-    suffix = 'json'
+    state = module.params['state']
+    cli_base = ['multiflexi-cli', 'credtype']
 
-    if module.params['state'] == 'get':
-        if module.params['credential_type_id']:
-            url = f"{api_url}/credential_type/{module.params['credential_type_id']}.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['credential_type'] = resp.json()
+    try:
+        if state == 'get':
+            if module.params['credential_type_id']:
+                args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--format', 'json']
+                output = run_cli_command(args)
+                result['credential_type'] = json.loads(output)
+            else:
+                args = cli_base + ['list', '--format', 'json']
+                output = run_cli_command(args)
+                result['credential_type'] = json.loads(output)
+            module.exit_json(**result)
+        elif state == 'present':
+            if not module.params['credential_type_id']:
+                module.fail_json(msg="credential_type_id required for update")
+            args = cli_base + ['update', '--id', str(module.params['credential_type_id'])]
+            for param in ['name', 'description', 'url', 'logo']:
+                value = module.params.get(param)
+                if value is not None:
+                    args += [f'--{param}', str(value)]
+            args += ['--format', 'json']
+            output = run_cli_command(args)
+            result['changed'] = True
+            result['credential_type'] = json.loads(output)
+            module.exit_json(**result)
         else:
-            url = f"{api_url}/credential_types.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['credential_type'] = resp.json()
-        module.exit_json(**result)
-    elif module.params['state'] == 'present':
-        if not module.params['credential_type_id']:
-            module.fail_json(msg="credential_type_id required for update")
-        url = f"{api_url}/credential_type/{module.params['credential_type_id']}.{suffix}"
-        data = {k: v for k, v in module.params.items() if k in [
-            'name', 'description', 'url', 'logo'
-        ] and v is not None}
-        resp = requests.post(url, auth=auth, headers=headers, json=data)
-        result['changed'] = True
-        result['credential_type'] = resp.json()
-        module.exit_json(**result)
-    else:
-        module.fail_json(msg="Invalid state")
+            module.fail_json(msg="Invalid state")
+    except Exception as e:
+        module.fail_json(msg=str(e))
 
 def main():
     run_module()

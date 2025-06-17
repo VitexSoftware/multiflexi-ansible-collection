@@ -117,7 +117,16 @@ RETURN = """
 
 
 from ansible.module_utils.basic import AnsibleModule
-import requests
+import subprocess
+import json
+
+
+def run_cli_command(args):
+    try:
+        result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"multiflexi-cli error: {e.stderr.strip()}")
 
 
 def run_module():
@@ -145,35 +154,55 @@ def run_module():
         supports_check_mode=True
     )
 
-    headers = {'Content-Type': 'application/json'}
-    auth = (module.params['username'], module.params['password'])
-    api_url = module.params['api_url']
-    suffix = 'json'
+    state = module.params['state']
+    cli_base = ['multiflexi-cli', 'application']
 
-    if module.params['state'] == 'get':
-        if module.params['app_id']:
-            url = f"{api_url}/app/{module.params['app_id']}.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['app'] = resp.json()
+    try:
+        if state == 'get':
+            if module.params['app_id']:
+                args = cli_base + ['get', '--id', str(module.params['app_id']), '--format', 'json']
+                output = run_cli_command(args)
+                result['app'] = json.loads(output)
+            else:
+                args = cli_base + ['list', '--format', 'json']
+                output = run_cli_command(args)
+                result['app'] = json.loads(output)
+            module.exit_json(**result)
+        elif state == 'present':
+            # If app_id is provided, update; else, create
+            if module.params['app_id']:
+                args = cli_base + ['update', '--id', str(module.params['app_id'])]
+                result['changed'] = True
+            else:
+                args = cli_base + ['create']
+                result['changed'] = True
+            # Add optional parameters
+            for param in ['name', 'executable', 'status']:
+                value = module.params.get(param)
+                if value is not None:
+                    args += [f'--{param}', str(value)]
+            # Handle tags as comma-separated string if provided
+            if module.params.get('tags'):
+                args += ['--topics', ','.join(module.params['tags'])]
+            args += ['--format', 'json']
+            output = run_cli_command(args)
+            result['app'] = json.loads(output)
+            module.exit_json(**result)
+        elif state == 'absent':
+            if module.params['app_id']:
+                args = cli_base + ['delete', '--id', str(module.params['app_id']), '--format', 'json']
+                output = run_cli_command(args)
+                result['changed'] = True
+                result['app'] = json.loads(output)
+                module.exit_json(**result)
+            else:
+                result['changed'] = False
+                result['message'] = 'app_id required for absent state.'
+                module.exit_json(**result)
         else:
-            url = f"{api_url}/apps.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['app'] = resp.json()
-        module.exit_json(**result)
-    elif module.params['state'] == 'present':
-        data = {k: v for k, v in module.params.items() if k in ['app_id', 'name', 'executable', 'tags', 'status'] and v is not None}
-        url = f"{api_url}/app/"
-        resp = requests.post(url, auth=auth, headers=headers, json=data)
-        result['changed'] = True
-        result['app'] = resp.json()
-        module.exit_json(**result)
-    elif module.params['state'] == 'absent':
-        # No DELETE endpoint in OpenAPI, so just simulate
-        result['changed'] = False
-        result['message'] = 'Delete not implemented in API.'
-        module.exit_json(**result)
-    else:
-        module.fail_json(msg="Invalid state")
+            module.fail_json(msg="Invalid state")
+    except Exception as e:
+        module.fail_json(msg=str(e))
 
 
 def main():
