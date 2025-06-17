@@ -1,0 +1,6 @@
+multiflexi-ansible-collection (0.1.0) UNRELEASED; urgency=low
+
+  * Initial release. Closes: #nnnn
+    <nnnn is the bug number of your ITP>
+
+ -- Vítězslav Dvořák <info@vitexsoftware.cz>  Sat, 24 Aug 2024 14:07:35 +0200

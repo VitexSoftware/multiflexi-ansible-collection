@@ -4,13 +4,21 @@
 # Copyright: (c) 2024, Dvořák Vítězslav <info@vitexsoftware.cz>
 
 from ansible.module_utils.basic import AnsibleModule
-import requests
+import subprocess
+import json
+
+
+def run_cli_command(args):
+    try:
+        result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"multiflexi-cli error: {e.stderr.strip()}")
 
 
 def run_module():
     module_args = dict(
-        state=dict(type='str', required=True,
-                   choices=['present', 'absent', 'get']),
+        state=dict(type='str', required=True, choices=['present', 'absent', 'get']),
         runtemplate_id=dict(type='int', required=False),
         name=dict(type='str', required=False),
         app_id=dict(type='int', required=False),
@@ -35,42 +43,52 @@ def run_module():
         supports_check_mode=True
     )
 
-    headers = {'Content-Type': 'application/json'}
-    auth = (module.params['username'], module.params['password'])
-    api_url = module.params['api_url']
-    suffix = 'json'
+    state = module.params['state']
+    cli_base = ['multiflexi-cli', 'runtemplate']
 
-    if module.params['state'] == 'get':
-        if module.params['runtemplate_id']:
-            url = (
-                f"{api_url}/runtemplate/"
-                f"{module.params['runtemplate_id']}.{suffix}"
-            )
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['runtemplate'] = resp.json()
+    try:
+        if state == 'get':
+            if module.params['runtemplate_id']:
+                args = cli_base + ['get', '--id', str(module.params['runtemplate_id']), '--format', 'json']
+                output = run_cli_command(args)
+                result['runtemplate'] = json.loads(output)
+            else:
+                args = cli_base + ['list', '--format', 'json']
+                output = run_cli_command(args)
+                result['runtemplate'] = json.loads(output)
+            module.exit_json(**result)
+        elif state == 'present':
+            # If runtemplate_id is provided, update; else, create
+            if module.params.get('runtemplate_id'):
+                args = cli_base + ['update', '--id', str(module.params['runtemplate_id'])]
+                result['changed'] = True
+            else:
+                args = cli_base + ['create']
+                result['changed'] = True
+            # Add optional parameters
+            for param in ['name', 'app_id', 'company_id', 'active', 'iterv', 'prepared', 'success', 'fail']:
+                value = module.params.get(param)
+                if value is not None:
+                    args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
+            args += ['--format', 'json']
+            output = run_cli_command(args)
+            result['runtemplate'] = json.loads(output)
+            module.exit_json(**result)
+        elif state == 'absent':
+            if module.params.get('runtemplate_id'):
+                args = cli_base + ['delete', '--id', str(module.params['runtemplate_id']), '--format', 'json']
+                output = run_cli_command(args)
+                result['changed'] = True
+                result['runtemplate'] = json.loads(output)
+                module.exit_json(**result)
+            else:
+                result['changed'] = False
+                result['message'] = 'runtemplate_id required for absent state.'
+                module.exit_json(**result)
         else:
-            url = f"{api_url}/runtemplates.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['runtemplate'] = resp.json()
-        module.exit_json(**result)
-    elif module.params['state'] == 'present':
-        data = {k: v for k, v in module.params.items()
-                if k in [
-                    'runtemplate_id', 'name', 'app_id', 'company_id', 'active',
-                    'iterv', 'prepared', 'success', 'fail'
-                ] and v is not None}
-        url = f"{api_url}/runtemplate"
-        resp = requests.post(url, auth=auth, headers=headers, json=data)
-        result['changed'] = True
-        result['runtemplate'] = resp.json()
-        module.exit_json(**result)
-    elif module.params['state'] == 'absent':
-        # No DELETE endpoint in OpenAPI, so just simulate
-        result['changed'] = False
-        result['message'] = 'Delete not implemented in API.'
-        module.exit_json(**result)
-    else:
-        module.fail_json(msg="Invalid state")
+            module.fail_json(msg="Invalid state")
+    except Exception as e:
+        module.fail_json(msg=str(e))
 
 
 def main():
