@@ -19,5 +19,7 @@
         "activityBar.activeBackground": "#D6AD60",
         "activityBar.border": "#D6AD60",
         "statusBar.border": "#D6AD60"
-    }
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:venv",
+    "python-envs.pythonProjects": []
 }

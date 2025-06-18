@@ -30,24 +30,79 @@ requirements:
 version_added: 2.1.0
 
 options:
+    code:
+        description:
+            - The code of the company (required by CLI)
+        required: true
+        type: str
     name:
         description:
             - The name of the company
-        required: true
+        required: false
         type: str
-    ico:
+    customer:
         description:
-            - The ICO of the company
-        required: true
+            - The customer of the company
+        required: false
+        type: int
+    server:
+        description:
+            - The server of the company
+        required: false
+        type: int
+    enabled:
+        description:
+            - Enabled (true/false)
+        required: false
+        type: bool
+    settings:
+        description:
+            - Settings
+        required: false
         type: str
-    code:
+    logo:
         description:
-            - The CODE of the company
-        required: true
+            - Logo
+        required: false
+        type: str
+    ic:
+        description:
+            - IC
+        required: false
+        type: str
+    company:
+        description:
+            - Company Code
+        required: false
+        type: str
+    rw:
+        description:
+            - Write permissions (true/false)
+        required: false
+        type: bool
+    setup:
+        description:
+            - Setup (true/false)
+        required: false
+        type: bool
+    webhook:
+        description:
+            - Webhook ready (true/false)
+        required: false
+        type: bool
+    DatCreate:
+        description:
+            - Created date (date-time)
+        required: false
+        type: str
+    DatUpdate:
+        description:
+            - Updated date (date-time)
+        required: false
         type: str
     email:
         description:
-            - The email of the company
+            - Email
         required: false
         type: str
     state:
@@ -55,49 +110,8 @@ options:
             - The state of the company
         required: false
         type: str
-        choices: ['present', 'absent']
+        choices: ['present', 'absent', 'get']
         default: 'present'
-    enabled:
-        description:
-            - The enabled state of the company
-        required: false
-        type: bool
-        default: true
-    settings:
-        description:
-            - The settings of the company
-        required: false
-        type: str
-    logo:
-        description:
-            - The logo of the company
-        required: false
-        type: str
-    server:
-        description:
-            - The server of the company
-        required: false
-        type: int
-    rw:
-        description:
-            - The read/write state of the company
-        required: false
-        type: bool
-    setup:
-        description:
-            - The setup state of the company
-        required: false
-        type: bool
-    webhook:
-        description:
-            - The webhook state of the company
-        required: false
-        type: bool
-    customer:
-        description:
-            - The customer of the company
-        required: false
-        type: int
 """
 
 EXAMPLES = """
@@ -105,16 +119,13 @@ EXAMPLES = """
 - name: Create company
   multiflexi_company:
     name: 'Test Company'
-    ico: '12345678'
     code: 'TEST'
-    email: 'your@mail.com'
 
 # Update company
 - name: Update company
   multiflexi_company:
     name: 'Renamed Company'
     code: 'TEST'
-    email: 'fixed@mail.com'
 
 # Delete company
 - name: Delete company
@@ -132,9 +143,7 @@ company:
         {
             "id": 1,
             "name": "Test Company",
-            "ico": "12345678",
-            "code": "TEST",
-            "email": "your@email.com"
+            "code": "TEST"
         }
 """
 
@@ -150,18 +159,21 @@ def run_cli_command(args):
 def run_module():
     module_args = dict(
         id=dict(type='int', required=False),
-        name=dict(type='str', required=False),
-        ico=dict(type='str', required=False),
         code=dict(type='str', required=True),
-        email=dict(type='str', required=False),
+        name=dict(type='str', required=False),
+        customer=dict(type='int', required=False),
+        server=dict(type='int', required=False),
         enabled=dict(type='bool', required=False),
         settings=dict(type='str', required=False),
         logo=dict(type='str', required=False),
-        server=dict(type='int', required=False),
+        ic=dict(type='str', required=False),
+        company=dict(type='str', required=False),
         rw=dict(type='bool', required=False),
         setup=dict(type='bool', required=False),
         webhook=dict(type='bool', required=False),
-        customer=dict(type='int', required=False),
+        DatCreate=dict(type='str', required=False),
+        DatUpdate=dict(type='str', required=False),
+        email=dict(type='str', required=False),
         state=dict(type='str', required=False, default='present', choices=['present', 'absent', 'get'])
     )
 
@@ -192,8 +204,8 @@ def run_module():
             else:
                 args = cli_base + ['create']
                 result['changed'] = True
-            # Add optional parameters
-            for param in ['name', 'ico', 'code', 'email', 'enabled', 'settings', 'logo', 'server', 'rw', 'setup', 'webhook', 'customer']:
+            # Add all supported CLI options
+            for param in ['code', 'name', 'customer', 'server', 'enabled', 'settings', 'logo', 'ic', 'company', 'rw', 'setup', 'webhook', 'DatCreate', 'DatUpdate', 'email']:
                 value = module.params.get(param)
                 if value is not None:
                     args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
@@ -202,7 +214,7 @@ def run_module():
             result['company'] = json.loads(output)
             module.exit_json(**result)
         elif state == 'absent':
-            args = cli_base + ['delete', '--code', module.params['code'], '--format', 'json']
+            args = cli_base + ['remove', '--code', module.params['code'], '--format', 'json']
             output = run_cli_command(args)
             result['changed'] = True
             result['company'] = json.loads(output)
