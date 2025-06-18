@@ -2,7 +2,7 @@
 - name: Create a company named "demo" in MultiFlexi
   company:
     name: "demo"
-    ico: "12345678"
+    ic: "12345678"
     code: "DEMO"
     email: "demo@example.com"
     state: present
