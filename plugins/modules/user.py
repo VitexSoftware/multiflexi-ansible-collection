@@ -156,30 +156,62 @@ def run_module():
 
     try:
         if state == 'get':
-            if module.params['user_id']:
-                args = cli_base + ['get', '--id', str(module.params['user_id']), '--format', 'json']
-                output = run_cli_command(args)
-                result['user'] = json.loads(output)
+            # Use the most specific identifier: user_id > login > email
+            if module.params.get('user_id'):
+                args = cli_base + ['get', '--id', str(module.params['user_id']), '--format', 'json', '--verbose']
+            elif module.params.get('login'):
+                args = cli_base + ['get', '--login', module.params['login'], '--format', 'json', '--verbose']
+            elif module.params.get('email'):
+                args = cli_base + ['get', '--email', module.params['email'], '--format', 'json', '--verbose']
             else:
-                args = cli_base + ['list', '--format', 'json']
-                output = run_cli_command(args)
-                result['user'] = json.loads(output)
+                args = cli_base + ['list', '--format', 'json', '--verbose']
+            output = run_cli_command(args)
+            result['user'] = json.loads(output)
             module.exit_json(**result)
         elif state == 'present':
-            # If user_id is provided, update; else, create
+            # 1. Check for existing user by user_id > login > email
+            found_user_id = None
             if module.params.get('user_id'):
-                args = cli_base + ['update', '--id', str(module.params['user_id'])]
+                check_args = cli_base + ['get', '--id', str(module.params['user_id']), '--format', 'json', '--verbose']
+                output = run_cli_command(check_args)
+                user = json.loads(output)
+                if user and isinstance(user, dict) and user.get('id'):
+                    found_user_id = user['id']
+            elif module.params.get('login'):
+                check_args = cli_base + ['list', '--format', 'json', '--login', module.params['login'], '--verbose']
+                output = run_cli_command(check_args)
+                users = json.loads(output)
+                if users and isinstance(users, list) and len(users) > 0:
+                    found_user_id = users[0].get('id')
+            elif module.params.get('email'):
+                check_args = cli_base + ['list', '--format', 'json', '--email', module.params['email'], '--verbose']
+                output = run_cli_command(check_args)
+                users = json.loads(output)
+                if users and isinstance(users, list) and len(users) > 0:
+                    found_user_id = users[0].get('id')
+            # 2. Create or update
+            if found_user_id:
+                args = cli_base + ['update', '--id', str(found_user_id)]
                 result['changed'] = True
             else:
                 args = cli_base + ['create']
                 result['changed'] = True
-            # Add optional parameters
             for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'password', 'login']:
                 value = module.params.get(param)
                 if value is not None:
                     args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
             args += ['--format', 'json']
-            output = run_cli_command(args)
+            run_cli_command(args)
+            # 3. Always read the record and return as result
+            if found_user_id:
+                read_args = cli_base + ['get', '--id', str(found_user_id), '--format', 'json', '--verbose']
+            elif module.params.get('login'):
+                read_args = cli_base + ['get', '--login', module.params['login'], '--format', 'json', '--verbose']
+            elif module.params.get('email'):
+                read_args = cli_base + ['get', '--email', module.params['email'], '--format', 'json', '--verbose']
+            else:
+                read_args = cli_base + ['list', '--format', 'json', '--verbose']
+            output = run_cli_command(read_args)
             result['user'] = json.loads(output)
             module.exit_json(**result)
         else:

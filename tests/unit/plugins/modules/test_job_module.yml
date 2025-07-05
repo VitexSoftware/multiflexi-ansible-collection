@@ -24,11 +24,31 @@
         app_version: "1.0"
       register: job_result
 
+    - name: Idempotency check - run job create again
+      job:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        app_id: "{{ app_id }}"
+        company_id: "{{ company_id }}"
+        command: "echo Hello"
+        schedule: "* * * * *"
+        executor: "Native"
+        app_version: "1.0"
+      register: job_idempotent
+
     - name: Assert job create result
       assert:
         that:
           - job_result.changed
           - job_result.job is defined
+
+    - name: Assert job idempotency
+      assert:
+        that:
+          - not job_idempotent.changed
+          - job_idempotent.job is defined
 
     - name: Get job by ID
       job:

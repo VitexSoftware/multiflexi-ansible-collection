@@ -33,6 +33,11 @@ options:
             - The ID of the application.
         required: false
         type: int
+    uuid:
+        description:
+            - The UUID of the application.
+        required: false
+        type: str
     name:
         description:
             - The name of the application.
@@ -133,6 +138,7 @@ def run_module():
     module_args = dict(
         state=dict(type='str', required=True, choices=['present', 'absent', 'get']),
         app_id=dict(type='int', required=False),
+        uuid=dict(type='str', required=False),
         name=dict(type='str', required=False),
         executable=dict(type='str', required=False),
         tags=dict(type='list', elements='str', required=False),
@@ -159,46 +165,82 @@ def run_module():
 
     try:
         if state == 'get':
-            if module.params['app_id']:
-                args = cli_base + ['get', '--id', str(module.params['app_id']), '--format', 'json']
-                output = run_cli_command(args)
-                result['app'] = json.loads(output)
+            # Use the most specific identifier: app_id > uuid > name
+            if module.params.get('app_id'):
+                args = cli_base + ['get', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
+            elif module.params.get('uuid'):
+                args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+            elif module.params.get('name'):
+                args = cli_base + ['get', '--name', module.params['name'], '--format', 'json', '--verbose']
             else:
-                args = cli_base + ['list', '--format', 'json']
-                output = run_cli_command(args)
-                result['app'] = json.loads(output)
+                args = cli_base + ['list', '--format', 'json', '--verbose']
+            output = run_cli_command(args)
+            result['app'] = json.loads(output)
             module.exit_json(**result)
         elif state == 'present':
-            # If app_id is provided, update; else, create
-            if module.params['app_id']:
-                args = cli_base + ['update', '--id', str(module.params['app_id'])]
+            # 1. Check for existing application by app_id > uuid > name
+            found_app_id = None
+            if module.params.get('app_id'):
+                check_args = cli_base + ['get', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
+                output = run_cli_command(check_args)
+                app = json.loads(output)
+                if app and isinstance(app, dict) and app.get('id'):
+                    found_app_id = app['id']
+            elif module.params.get('uuid'):
+                check_args = cli_base + ['list', '--format', 'json', '--uuid', module.params['uuid'], '--verbose']
+                output = run_cli_command(check_args)
+                apps = json.loads(output)
+                if apps and isinstance(apps, list) and len(apps) > 0:
+                    found_app_id = apps[0].get('id')
+            elif module.params.get('name'):
+                check_args = cli_base + ['list', '--format', 'json', '--name', module.params['name'], '--verbose']
+                output = run_cli_command(check_args)
+                apps = json.loads(output)
+                if apps and isinstance(apps, list) and len(apps) > 0:
+                    found_app_id = apps[0].get('id')
+            # 2. Create or update
+            if found_app_id:
+                args = cli_base + ['update', '--id', str(found_app_id)]
                 result['changed'] = True
             else:
                 args = cli_base + ['create']
                 result['changed'] = True
-            # Add optional parameters
-            for param in ['name', 'executable', 'status']:
+            for param in ['name', 'executable', 'status', 'uuid']:
                 value = module.params.get(param)
                 if value is not None:
                     args += [f'--{param}', str(value)]
-            # Handle tags as comma-separated string if provided
             if module.params.get('tags'):
                 args += ['--topics', ','.join(module.params['tags'])]
-            args += ['--format', 'json']
-            output = run_cli_command(args)
+            args += ['--format', 'json', '--verbose']
+            run_cli_command(args)
+            # 3. Always read the record and return as result
+            if found_app_id:
+                read_args = cli_base + ['get', '--id', str(found_app_id), '--format', 'json', '--verbose']
+            elif module.params.get('uuid'):
+                read_args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+            elif module.params.get('name'):
+                read_args = cli_base + ['get', '--name', module.params['name'], '--format', 'json', '--verbose']
+            else:
+                read_args = cli_base + ['list', '--format', 'json', '--verbose']
+            output = run_cli_command(read_args)
             result['app'] = json.loads(output)
             module.exit_json(**result)
         elif state == 'absent':
-            if module.params['app_id']:
-                args = cli_base + ['delete', '--id', str(module.params['app_id']), '--format', 'json']
-                output = run_cli_command(args)
-                result['changed'] = True
-                result['app'] = json.loads(output)
-                module.exit_json(**result)
+            # Use the most specific identifier for removal
+            if module.params.get('app_id'):
+                args = cli_base + ['delete', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
+            elif module.params.get('uuid'):
+                args = cli_base + ['delete', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+            elif module.params.get('name'):
+                args = cli_base + ['delete', '--name', module.params['name'], '--format', 'json', '--verbose']
             else:
                 result['changed'] = False
-                result['message'] = 'app_id required for absent state.'
+                result['message'] = 'app_id, uuid, or name required for absent state.'
                 module.exit_json(**result)
+            output = run_cli_command(args)
+            result['changed'] = True
+            result['app'] = json.loads(output)
+            module.exit_json(**result)
         else:
             module.fail_json(msg="Invalid state")
     except Exception as e:

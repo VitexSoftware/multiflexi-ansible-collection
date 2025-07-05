@@ -30,9 +30,9 @@ requirements:
 version_added: 2.1.0
 
 options:
-    code:
+    slug:
         description:
-            - The code of the company (required by CLI)
+            - The slug (code) of the company (required by CLI)
         required: true
         type: str
     name:
@@ -43,11 +43,6 @@ options:
     customer:
         description:
             - The customer of the company
-        required: false
-        type: int
-    server:
-        description:
-            - The server of the company
         required: false
         type: int
     enabled:
@@ -70,26 +65,6 @@ options:
             - IC
         required: false
         type: str
-    company:
-        description:
-            - Company Code
-        required: false
-        type: str
-    rw:
-        description:
-            - Write permissions (true/false)
-        required: false
-        type: bool
-    setup:
-        description:
-            - Setup (true/false)
-        required: false
-        type: bool
-    webhook:
-        description:
-            - Webhook ready (true/false)
-        required: false
-        type: bool
     DatCreate:
         description:
             - Created date (date-time)
@@ -119,18 +94,18 @@ EXAMPLES = """
 - name: Create company
   multiflexi_company:
     name: 'Test Company'
-    code: 'TEST'
+    slug: 'TEST'
 
 # Update company
 - name: Update company
   multiflexi_company:
     name: 'Renamed Company'
-    code: 'TEST'
+    slug: 'TEST'
 
 # Delete company
 - name: Delete company
   multiflexi_company:
-    code: 'TEST'
+    slug: 'TEST'
     state: 'absent'
 """
 
@@ -143,12 +118,24 @@ company:
         {
             "id": 1,
             "name": "Test Company",
-            "code": "TEST"
+            "slug": "TEST"
         }
 """
 
 
-def run_cli_command(args):
+def run_cli_command(args, module=None):
+    # Use module._verbosity if available, else check ANSIBLE_VERBOSITY env var
+    verbosity = 0
+    if module and hasattr(module, '_verbosity'):
+        verbosity = module._verbosity
+    else:
+        import os
+        try:
+            verbosity = int(os.environ.get('ANSIBLE_VERBOSITY', '0'))
+        except Exception:
+            verbosity = 0
+    if verbosity >= 2 and module is not None:
+        module.warn("[DEBUG] Running command: {}".format(' '.join(args)))
     try:
         result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
         return result.stdout
@@ -159,18 +146,13 @@ def run_cli_command(args):
 def run_module():
     module_args = dict(
         id=dict(type='int', required=False),
-        code=dict(type='str', required=True),
+        slug=dict(type='str', required=True),
         name=dict(type='str', required=False),
         customer=dict(type='int', required=False),
-        server=dict(type='int', required=False),
         enabled=dict(type='bool', required=False),
         settings=dict(type='str', required=False),
         logo=dict(type='str', required=False),
         ic=dict(type='str', required=False),
-        company=dict(type='str', required=False),
-        rw=dict(type='bool', required=False),
-        setup=dict(type='bool', required=False),
-        webhook=dict(type='bool', required=False),
         DatCreate=dict(type='str', required=False),
         DatUpdate=dict(type='str', required=False),
         email=dict(type='str', required=False),
@@ -179,7 +161,7 @@ def run_module():
 
     result = dict(
         changed=False,
-        company=None
+        slug=None
     )
 
     module = AnsibleModule(
@@ -190,34 +172,90 @@ def run_module():
     state = module.params['state']
     cli_base = ['multiflexi-cli', 'company']
 
+    def get_existing_company():
+        # Use the most specific identifier available: id > ic > name > slug
+        if module.params.get('id'):
+            args = cli_base + ['get', '--id', str(module.params['id']), '--verbose', '--format', 'json']
+        elif module.params.get('ic'):
+            args = cli_base + ['get', '--ic', module.params['ic'], '--verbose', '--format', 'json']
+        elif module.params.get('name'):
+            args = cli_base + ['get', '--name', module.params['name'], '--verbose', '--format', 'json']
+        else:
+            args = cli_base + ['get', '--slug', module.params['slug'], '--verbose', '--format', 'json']
+        try:
+            output = run_cli_command(args, module=module)
+            company = json.loads(output)
+            if isinstance(company, dict) and company.get("status") == "not found":
+                return None, company.get("message")
+            if isinstance(company, dict) and company.get('id'):
+                return company, None
+        except Exception as e:
+            return None, str(e)
+        return None, None
+
     try:
         if state == 'get':
-            args = cli_base + ['get', '--code', module.params['code'], '--format', 'json']
-            output = run_cli_command(args)
-            result['company'] = json.loads(output)
+            company, notfound_msg = get_existing_company()
+            if not company:
+                module.exit_json(changed=False, company=None, msg=notfound_msg or "Company not found")
+            result['company'] = company
             module.exit_json(**result)
         elif state == 'present':
-            # If id is provided, update; else, create
-            if module.params.get('id'):
-                args = cli_base + ['update', '--id', str(module.params['id'])]
+            existing, notfound_msg = get_existing_company()
+            changed = False
+            update_fields = {}
+            for param in ['slug', 'name', 'customer', 'enabled', 'settings', 'logo', 'ic', 'DatCreate', 'DatUpdate', 'email']:
+                desired = module.params.get(param)
+                if desired is not None:
+                    if not existing or str(existing.get(param)) != str(int(desired)) if isinstance(desired, bool) else str(desired):
+                        update_fields[param] = desired
+                        changed = True
+            if not existing:
+                # Create
+                args = cli_base + ['create']
+                for k, v in update_fields.items():
+                    args += [f'--{k}', str(int(v)) if isinstance(v, bool) else str(v)]
+                args += ['--verbose', '--format', 'json']
+                if module.check_mode:
+                    result['changed'] = True
+                    module.exit_json(**result)
+                run_cli_command(args, module=module)
+                result['changed'] = True
+            elif changed:
+                # Update only if something changed
+                args = cli_base + ['update', '--id', str(existing['id'])]
+                for k, v in update_fields.items():
+                    args += [f'--{k}', str(int(v)) if isinstance(v, bool) else str(v)]
+                args += ['--verbose', '--format', 'json']
+                if module.check_mode:
+                    result['changed'] = True
+                    module.exit_json(**result)
+                run_cli_command(args, module=module)
                 result['changed'] = True
             else:
-                args = cli_base + ['create']
-                result['changed'] = True
-            # Add all supported CLI options
-            for param in ['code', 'name', 'customer', 'server', 'enabled', 'settings', 'logo', 'ic', 'company', 'rw', 'setup', 'webhook', 'DatCreate', 'DatUpdate', 'email']:
-                value = module.params.get(param)
-                if value is not None:
-                    args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
-            args += ['--format', 'json']
-            output = run_cli_command(args)
-            result['company'] = json.loads(output)
+                # No change needed
+                result['changed'] = False
+            # Always return the latest record
+            latest, notfound_msg = get_existing_company()
+            result['company'] = latest
+            if not latest and notfound_msg:
+                result['msg'] = notfound_msg
             module.exit_json(**result)
         elif state == 'absent':
-            args = cli_base + ['remove', '--code', module.params['code'], '--format', 'json']
-            output = run_cli_command(args)
-            result['changed'] = True
-            result['company'] = json.loads(output)
+            existing, notfound_msg = get_existing_company()
+            if existing:
+                args = cli_base + ['remove', '--id', str(existing['id']), '--verbose', '--format', 'json']
+                if module.check_mode:
+                    result['changed'] = True
+                    module.exit_json(**result)
+                run_cli_command(args, module=module)
+                result['changed'] = True
+                result['company'] = existing
+            else:
+                result['changed'] = False
+                result['company'] = None
+                if notfound_msg:
+                    result['msg'] = notfound_msg
             module.exit_json(**result)
         else:
             module.fail_json(msg="Invalid state")

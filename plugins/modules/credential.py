@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-import requests
+import subprocess
+import json
 
 DOCUMENTATION = """
 ---
@@ -10,7 +11,7 @@ module: credential
 short_description: Manage credentials in Multiflexi
 
 description:
-    - This module allows you to get, update, and list credentials in Multiflexi via REST API.
+    - This module allows you to get and update credentials in Multiflexi via CLI with idempotency logic.
 
 author:
     - Vitex (@Vitexus)
@@ -52,23 +53,12 @@ options:
             - Value of the credential.
         required: false
         type: str
-    api_url:
+    multiflexi_cli:
         description:
-            - API base URL.
-        required: true
+            - Path to multiflexi-cli binary (default: multiflexi-cli in PATH).
+        required: false
         type: str
-    username:
-        description:
-            - API username.
-        required: true
-        type: str
-    password:
-        description:
-            - API password.
-        required: true
-        type: str
-        no_log: true
-
+        default: multiflexi-cli
 """
 
 EXAMPLES = """
@@ -76,16 +66,10 @@ EXAMPLES = """
   credential:
     state: get
     credential_id: 1
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password: "secret"
 
 - name: List all credentials
   credential:
     state: get
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password: "secret"
 
 - name: Update a credential
   credential:
@@ -93,9 +77,6 @@ EXAMPLES = """
     credential_id: 1
     name: "API Key"
     value: "newvalue"
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password: "secret"
 """
 
 RETURN = """
@@ -104,6 +85,37 @@ credential:
     type: dict or list
     returned: always
 """
+
+def run_cli(module, args):
+    cli = module.params.get('multiflexi_cli', 'multiflexi-cli')
+    cmd = [cli] + args + ['--verbose', '--output', 'json']
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+        try:
+            err = json.loads(e.stdout or e.stderr)
+        except Exception:
+            err = e.stdout or e.stderr
+        module.fail_json(msg=f"CLI error: {err}", rc=e.returncode)
+    except Exception as e:
+        module.fail_json(msg=f"Failed to run CLI: {e}")
+
+def find_existing_credential(module):
+    # Priority: credential_id > token > name
+    cli_args = []
+    if module.params.get('credential_id'):
+        cli_args = ['credential', 'get', '--id', str(module.params['credential_id'])]
+    elif module.params.get('token'):
+        cli_args = ['credential', 'get', '--token', module.params['token']]
+    elif module.params.get('name'):
+        cli_args = ['credential', 'get', '--name', module.params['name']]
+    else:
+        return None
+    res = run_cli(module, cli_args)
+    if isinstance(res, dict) and res.get('id'):
+        return res
+    return None
 
 def run_module():
     module_args = dict(
@@ -114,9 +126,7 @@ def run_module():
         name=dict(type='str', required=False),
         type=dict(type='str', required=False),
         value=dict(type='str', required=False),
-        api_url=dict(type='str', required=True),
-        username=dict(type='str', required=True),
-        password=dict(type='str', required=True, no_log=True),
+        multiflexi_cli=dict(type='str', required=False, default='multiflexi-cli'),
     )
 
     result = dict(
@@ -129,34 +139,38 @@ def run_module():
         supports_check_mode=True
     )
 
-    headers = {'Content-Type': 'application/json'}
-    auth = (module.params['username'], module.params['password'])
-    api_url = module.params['api_url']
-    suffix = 'json'
+    state = module.params['state']
 
-    if module.params['state'] == 'get':
-        if module.params['credential_id']:
-            url = f"{api_url}/credential/{module.params['credential_id']}.{suffix}"
-            params = {}
-            if module.params['token']:
-                params['token'] = module.params['token']
-            resp = requests.get(url, auth=auth, headers=headers, params=params)
-            result['credential'] = resp.json()
+    if state == 'get':
+        # Try most specific identifier first
+        cred = find_existing_credential(module)
+        if cred:
+            result['credential'] = cred
         else:
-            url = f"{api_url}/credentials.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['credential'] = resp.json()
+            # List all
+            res = run_cli(module, ['credential', 'list'])
+            result['credential'] = res
         module.exit_json(**result)
-    elif module.params['state'] == 'present':
-        if not module.params['credential_id']:
-            module.fail_json(msg="credential_id required for update")
-        url = f"{api_url}/credential/{module.params['credential_id']}.{suffix}"
-        data = {k: v for k, v in module.params.items() if k in [
-            'token', 'company_id', 'name', 'type', 'value'
-        ] and v is not None}
-        resp = requests.post(url, auth=auth, headers=headers, json=data)
+
+    elif state == 'present':
+        cred = find_existing_credential(module)
+        if not cred:
+            module.fail_json(msg="Credential not found. Creation is not supported via CLI.")
+        # Prepare update args (only supported fields)
+        update_args = ['credential', 'update', '--id', str(cred['id'])]
+        for field in ['token', 'company_id', 'name', 'type', 'value']:
+            val = module.params.get(field)
+            if val is not None:
+                update_args += [f'--{field.replace("_", "-")}', str(val)]
+        if module.check_mode:
+            result['changed'] = True
+            result['credential'] = cred
+            module.exit_json(**result)
+        run_cli(module, update_args)
+        # Fetch latest
+        latest = run_cli(module, ['credential', 'get', '--id', str(cred['id'])])
         result['changed'] = True
-        result['credential'] = resp.json()
+        result['credential'] = latest
         module.exit_json(**result)
     else:
         module.fail_json(msg="Invalid state")

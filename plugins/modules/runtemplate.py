@@ -8,12 +8,34 @@ import subprocess
 import json
 
 
-def run_cli_command(args):
+def run_cli(module, args):
+    cli = 'multiflexi-cli'
+    cmd = [cli] + args + ['--verbose', '--format', 'json']
     try:
-        result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
-        return result.stdout
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
-        raise Exception(f"multiflexi-cli error: {e.stderr.strip()}")
+        try:
+            err = json.loads(e.stdout or e.stderr)
+        except Exception:
+            err = e.stdout or e.stderr
+        module.fail_json(msg=f"CLI error: {err}", rc=e.returncode)
+    except Exception as e:
+        module.fail_json(msg=f"Failed to run CLI: {e}")
+
+
+def find_existing_runtemplate(module):
+    # Priority: runtemplate_id > name
+    if module.params.get('runtemplate_id'):
+        res = run_cli(module, ['runtemplate', 'get', '--id', str(module.params['runtemplate_id'])])
+        if isinstance(res, dict) and res.get('id'):
+            return res
+    elif module.params.get('name'):
+        templates = run_cli(module, ['runtemplate', 'list'])
+        for tpl in templates if isinstance(templates, list) else []:
+            if tpl.get('name') == module.params['name']:
+                return tpl
+    return None
 
 
 def run_module():
@@ -44,51 +66,73 @@ def run_module():
     )
 
     state = module.params['state']
-    cli_base = ['multiflexi-cli', 'runtemplate']
 
-    try:
-        if state == 'get':
-            if module.params['runtemplate_id']:
-                args = cli_base + ['get', '--id', str(module.params['runtemplate_id']), '--format', 'json']
-                output = run_cli_command(args)
-                result['runtemplate'] = json.loads(output)
-            else:
-                args = cli_base + ['list', '--format', 'json']
-                output = run_cli_command(args)
-                result['runtemplate'] = json.loads(output)
-            module.exit_json(**result)
-        elif state == 'present':
-            # If runtemplate_id is provided, update; else, create
-            if module.params.get('runtemplate_id'):
-                args = cli_base + ['update', '--id', str(module.params['runtemplate_id'])]
-                result['changed'] = True
-            else:
-                args = cli_base + ['create']
-                result['changed'] = True
-            # Add optional parameters
-            for param in ['name', 'app_id', 'company_id', 'active', 'iterv', 'prepared', 'success', 'fail']:
-                value = module.params.get(param)
-                if value is not None:
-                    args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
-            args += ['--format', 'json']
-            output = run_cli_command(args)
-            result['runtemplate'] = json.loads(output)
-            module.exit_json(**result)
-        elif state == 'absent':
-            if module.params.get('runtemplate_id'):
-                args = cli_base + ['delete', '--id', str(module.params['runtemplate_id']), '--format', 'json']
-                output = run_cli_command(args)
-                result['changed'] = True
-                result['runtemplate'] = json.loads(output)
-                module.exit_json(**result)
-            else:
-                result['changed'] = False
-                result['message'] = 'runtemplate_id required for absent state.'
-                module.exit_json(**result)
+    if state == 'get':
+        tpl = find_existing_runtemplate(module)
+        if tpl:
+            result['runtemplate'] = tpl
         else:
-            module.fail_json(msg="Invalid state")
-    except Exception as e:
-        module.fail_json(msg=str(e))
+            templates = run_cli(module, ['runtemplate', 'list'])
+            result['runtemplate'] = templates
+        module.exit_json(**result)
+
+    elif state == 'present':
+        tpl = find_existing_runtemplate(module)
+        if tpl:
+            # Update
+            update_args = ['runtemplate', 'update', '--id', str(tpl['id'])]
+            for field in ['name', 'app_id', 'company_id', 'active', 'iterv', 'prepared', 'success', 'fail']:
+                val = module.params.get(field)
+                if val is not None:
+                    update_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
+            if module.check_mode:
+                result['changed'] = True
+                result['runtemplate'] = tpl
+                module.exit_json(**result)
+            run_cli(module, update_args)
+            latest = run_cli(module, ['runtemplate', 'get', '--id', str(tpl['id'])])
+            result['changed'] = True
+            result['runtemplate'] = latest
+            module.exit_json(**result)
+        else:
+            # Create
+            create_args = ['runtemplate', 'create']
+            for field in ['name', 'app_id', 'company_id', 'active', 'iterv', 'prepared', 'success', 'fail']:
+                val = module.params.get(field)
+                if val is not None:
+                    create_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
+            if module.check_mode:
+                result['changed'] = True
+                result['runtemplate'] = None
+                module.exit_json(**result)
+            created = run_cli(module, create_args)
+            tpl_id = created.get('id')
+            if tpl_id:
+                latest = run_cli(module, ['runtemplate', 'get', '--id', str(tpl_id)])
+                result['runtemplate'] = latest
+            else:
+                result['runtemplate'] = created
+            result['changed'] = True
+            module.exit_json(**result)
+
+    elif state == 'absent':
+        tpl = find_existing_runtemplate(module)
+        if tpl:
+            delete_args = ['runtemplate', 'delete', '--id', str(tpl['id'])]
+            if module.check_mode:
+                result['changed'] = True
+                result['runtemplate'] = tpl
+                module.exit_json(**result)
+            run_cli(module, delete_args)
+            result['changed'] = True
+            result['runtemplate'] = tpl
+            module.exit_json(**result)
+        else:
+            result['changed'] = False
+            result['message'] = 'Runtemplate not found.'
+            module.exit_json(**result)
+    else:
+        module.fail_json(msg="Invalid state")
 
 
 def main():

@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from ansible.module_utils.basic import AnsibleModule
-import requests
+import subprocess
+import json
 
 DOCUMENTATION = """
 ---
@@ -10,7 +11,7 @@ module: topic
 short_description: Manage topics in Multiflexi
 
 description:
-    - This module allows you to get, update, and list topics in Multiflexi via REST API.
+    - This module allows you to get and update topics in Multiflexi via CLI with idempotency logic.
 
 author:
     - Vitex (@Vitexus)
@@ -42,23 +43,12 @@ options:
             - Color of the topic.
         required: false
         type: str
-    api_url:
+    multiflexi_cli:
         description:
-            - API base URL.
-        required: true
+            - Path to multiflexi-cli binary (default: multiflexi-cli in PATH).
+        required: false
         type: str
-    username:
-        description:
-            - API username.
-        required: true
-        type: str
-    password:
-        description:
-            - API password.
-        required: true
-        type: str
-        no_log: true
-
+        default: multiflexi-cli
 """
 
 EXAMPLES = """
@@ -66,16 +56,10 @@ EXAMPLES = """
   topic:
     state: get
     topic_id: 1
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password: "secret"
 
 - name: List all topics
   topic:
     state: get
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password: "secret"
 
 - name: Update a topic
   topic:
@@ -83,9 +67,6 @@ EXAMPLES = """
     topic_id: 1
     name: "Important"
     color: "#ff0000"
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password: "secret"
 """
 
 RETURN = """
@@ -95,6 +76,34 @@ topic:
     returned: always
 """
 
+def run_cli(module, args):
+    cli = module.params.get('multiflexi_cli', 'multiflexi-cli')
+    cmd = [cli] + args + ['--verbose', '--output', 'json']
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+        try:
+            err = json.loads(e.stdout or e.stderr)
+        except Exception:
+            err = e.stdout or e.stderr
+        module.fail_json(msg=f"CLI error: {err}", rc=e.returncode)
+    except Exception as e:
+        module.fail_json(msg=f"Failed to run CLI: {e}")
+
+def find_existing_topic(module):
+    # Priority: topic_id > name
+    if module.params.get('topic_id'):
+        res = run_cli(module, ['topic', 'get', '--id', str(module.params['topic_id'])])
+        if isinstance(res, dict) and res.get('id'):
+            return res
+    elif module.params.get('name'):
+        topics = run_cli(module, ['topic', 'list'])
+        for topic in topics if isinstance(topics, list) else []:
+            if topic.get('name') == module.params['name']:
+                return topic
+    return None
+
 def run_module():
     module_args = dict(
         state=dict(type='str', required=True, choices=['present', 'get']),
@@ -102,9 +111,7 @@ def run_module():
         name=dict(type='str', required=False),
         description=dict(type='str', required=False),
         color=dict(type='str', required=False),
-        api_url=dict(type='str', required=True),
-        username=dict(type='str', required=True),
-        password=dict(type='str', required=True, no_log=True),
+        multiflexi_cli=dict(type='str', required=False, default='multiflexi-cli'),
     )
 
     result = dict(
@@ -117,31 +124,35 @@ def run_module():
         supports_check_mode=True
     )
 
-    headers = {'Content-Type': 'application/json'}
-    auth = (module.params['username'], module.params['password'])
-    api_url = module.params['api_url']
-    suffix = 'json'
+    state = module.params['state']
 
-    if module.params['state'] == 'get':
-        if module.params['topic_id']:
-            url = f"{api_url}/topic/{module.params['topic_id']}.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['topic'] = resp.json()
+    if state == 'get':
+        topic = find_existing_topic(module)
+        if topic:
+            result['topic'] = topic
         else:
-            url = f"{api_url}/topics.{suffix}"
-            resp = requests.get(url, auth=auth, headers=headers)
-            result['topic'] = resp.json()
+            topics = run_cli(module, ['topic', 'list'])
+            result['topic'] = topics
         module.exit_json(**result)
-    elif module.params['state'] == 'present':
-        if not module.params['topic_id']:
-            module.fail_json(msg="topic_id required for update")
-        url = f"{api_url}/topic/{module.params['topic_id']}.{suffix}"
-        data = {k: v for k, v in module.params.items() if k in [
-            'name', 'description', 'color'
-        ] and v is not None}
-        resp = requests.post(url, auth=auth, headers=headers, json=data)
+
+    elif state == 'present':
+        topic = find_existing_topic(module)
+        if not topic:
+            module.fail_json(msg="Topic not found. Creation is not supported via CLI.")
+        # Prepare update args (only supported fields)
+        update_args = ['topic', 'update', '--id', str(topic['id'])]
+        for field in ['name', 'description', 'color']:
+            val = module.params.get(field)
+            if val is not None:
+                update_args += [f'--{field}', str(val)]
+        if module.check_mode:
+            result['changed'] = True
+            result['topic'] = topic
+            module.exit_json(**result)
+        run_cli(module, update_args)
+        latest = run_cli(module, ['topic', 'get', '--id', str(topic['id'])])
         result['changed'] = True
-        result['topic'] = resp.json()
+        result['topic'] = latest
         module.exit_json(**result)
     else:
         module.fail_json(msg="Invalid state")

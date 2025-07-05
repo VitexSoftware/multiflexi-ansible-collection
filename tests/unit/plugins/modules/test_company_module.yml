@@ -20,6 +20,18 @@
         enabled: true
       register: company_result
 
+    - name: Idempotency check - run company create again
+      company:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        name: "TestCompany"
+        code: "TSTC"
+        email: "test@company.com"
+        enabled: true
+      register: company_idempotent
+
     - name: Get company by ID
       company:
         state: get
@@ -50,6 +62,12 @@
         that:
           - company_result.changed
           - company_result.company.name == 'TestCompany'
+
+    - name: Assert company idempotency
+      ansible.builtin.assert:
+        that:
+          - not company_idempotent.changed
+          - company_idempotent.company.name == 'TestCompany'
 
     - name: Assert company get result
       ansible.builtin.assert:

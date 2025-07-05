@@ -50,6 +50,19 @@
       register: topic_update
       when: topics_result.topic|length > 0
 
+    - name: Idempotency check - run topic update again (only if any exist)
+      topic:
+        state: present
+        api_url: "{{ api_url }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        topic_id: "{{ (topics_result.topic[0].id if topics_result.topic|length > 0 else 1) }}"
+        name: "UpdatedTopic"
+        description: "Updated by test"
+        color: "#00ff00"
+      register: topic_idempotent
+      when: topics_result.topic|length > 0
+
     - name: Assert topic update result (if any exist)
       assert:
         that:
@@ -58,4 +71,14 @@
           - topic_update.topic.name == 'UpdatedTopic'
           - topic_update.topic.description == 'Updated by test'
           - topic_update.topic.color == '#00ff00'
+      when: topics_result.topic|length > 0
+
+    - name: Assert topic idempotency (if any exist)
+      assert:
+        that:
+          - not topic_idempotent.changed
+          - topic_idempotent.topic is defined
+          - topic_idempotent.topic.name == 'UpdatedTopic'
+          - topic_idempotent.topic.description == 'Updated by test'
+          - topic_idempotent.topic.color == '#00ff00'
       when: topics_result.topic|length > 0

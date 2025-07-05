@@ -1,7 +1,10 @@
 ---
-- name: Ensure demo role is executed
+- name: Ensure the MultiFlexi is installed
+  multiflexi_info:
+  register: multiflexi_info
+- name: Show MultiFlexi information
   ansible.builtin.debug:
-    msg: "Demo role tasks are being executed."
+    var: multiflexi_info
 
 - name: Include tasks from the demo role
   ansible.builtin.include_tasks: "{{ item }}"
