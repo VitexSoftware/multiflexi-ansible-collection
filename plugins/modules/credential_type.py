@@ -136,26 +136,51 @@ def run_module():
 
     try:
         if state == 'get':
-            if module.params['credential_type_id']:
-                args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--format', 'json']
-                output = run_cli_command(args)
-                result['credential_type'] = json.loads(output)
+            # Use the most specific identifier: credential_type_id > name
+            if module.params.get('credential_type_id'):
+                args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--verbose', '--output', 'json']
+            elif module.params.get('name'):
+                args = cli_base + ['get', '--name', module.params['name'], '--verbose', '--output', 'json']
             else:
-                args = cli_base + ['list', '--format', 'json']
-                output = run_cli_command(args)
-                result['credential_type'] = json.loads(output)
+                args = cli_base + ['list', '--verbose', '--output', 'json']
+            output = run_cli_command(args)
+            result['credential_type'] = json.loads(output)
             module.exit_json(**result)
         elif state == 'present':
-            if not module.params['credential_type_id']:
-                module.fail_json(msg="credential_type_id required for update")
-            args = cli_base + ['update', '--id', str(module.params['credential_type_id'])]
-            for param in ['name', 'description', 'url', 'logo']:
-                value = module.params.get(param)
-                if value is not None:
-                    args += [f'--{param}', str(value)]
-            args += ['--format', 'json']
-            output = run_cli_command(args)
-            result['changed'] = True
+            # 1. Check for existing credential type by id > name
+            found_id = None
+            if module.params.get('credential_type_id'):
+                check_args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--verbose', '--output', 'json']
+                output = run_cli_command(check_args)
+                cred = json.loads(output)
+                if cred and isinstance(cred, dict) and cred.get('id'):
+                    found_id = cred['id']
+            elif module.params.get('name'):
+                check_args = cli_base + ['list', '--verbose', '--output', 'json', '--name', module.params['name']]
+                output = run_cli_command(check_args)
+                creds = json.loads(output)
+                if creds and isinstance(creds, list) and len(creds) > 0:
+                    found_id = creds[0].get('id')
+            # 2. Create or update (CLI may not support create, so only update if found)
+            if found_id:
+                args = cli_base + ['update', '--id', str(found_id)]
+                result['changed'] = True
+                for param in ['name', 'description', 'url', 'logo']:
+                    value = module.params.get(param)
+                    if value is not None:
+                        args += [f'--{param}', str(value)]
+                args += ['--verbose', '--output', 'json']
+                run_cli_command(args)
+            else:
+                module.fail_json(msg="Credential type not found for update. Use the UI or API to create new credential types.")
+            # 3. Always read the record and return as result
+            if found_id:
+                read_args = cli_base + ['get', '--id', str(found_id), '--verbose', '--output', 'json']
+            elif module.params.get('name'):
+                read_args = cli_base + ['get', '--name', module.params['name'], '--verbose', '--output', 'json']
+            else:
+                read_args = cli_base + ['list', '--verbose', '--output', 'json']
+            output = run_cli_command(read_args)
             result['credential_type'] = json.loads(output)
             module.exit_json(**result)
         else:
