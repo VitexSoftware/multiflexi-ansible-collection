@@ -13,26 +13,27 @@
   ansible.builtin.debug:
     var: company_result
 
-# - name: Ensure the company "demo" exists
-#   company_info:
-#     name: "demo"
-#   register: company_info_result
-# - name: Show company information
-#   ansible.builtin.debug:
-#     var: company_info_result
-# - name: Ensure the company "demo" exists
-#   ansible.builtin.assert:
-#     that:
-#       - company_info_result.company is defined
-#       - company_info_result.company.name == "demo"
-#     msg: "Company 'demo' does not exist or has incorrect name."
-# - name: Ensure the company "demo" has the correct IC
-#   ansible.builtin.assert:
-#     that:
-#       - company_info_result.company.ic == "12345678"
-#     msg: "Company 'demo' does not have the correct IC."
-# - name: Ensure the company "demo" has the correct code
-#   ansible.builtin.assert:
-#     that:
-#       - company_info_result.company.code == "DEMO"
-#     msg: "Company 'demo' does not have the correct code."
+- name: Ensure the company "demo" exists
+  company_info:
+    name: "demo"
+  register: company_info_result
+
+- name: Show company information
+  ansible.builtin.debug:
+    var: company_info_result
+- name: Ensure the company "demo" exists
+  ansible.builtin.assert:
+    that:
+      - company_info_result.company is defined
+      - company_info_result.company.name == "demo"
+    msg: "Company 'demo' does not exist or has incorrect name."
+- name: Ensure the company "demo" has the correct IC
+  ansible.builtin.assert:
+    that:
+      - company_info_result.company.ic == "12345678"
+    msg: "Company 'demo' does not have the correct IC."
+- name: Ensure the company "demo" has the correct slug code
+  ansible.builtin.assert:
+    that:
+      - company_info_result.company.slug == "DEMO"
+    msg: "Company 'demo' does not have the correct slug code."
