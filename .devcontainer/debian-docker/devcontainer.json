@@ -1,6 +1,6 @@
 {
   "name": "ansible-dev-container-codespaces",
-  "image": "vitexsoftware/debian:trixie",
+  "image": "ghcr.io/ansible/community-ansible-dev-tools:latest",
   "containerUser": "root",
   "runArgs": [
     "--security-opt",
