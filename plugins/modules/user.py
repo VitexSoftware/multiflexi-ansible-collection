@@ -63,22 +63,6 @@ options:
             - Login name.
         required: false
         type: str
-    api_url:
-        description:
-            - API base URL.
-        required: true
-        type: str
-    username:
-        description:
-            - API username.
-        required: true
-        type: str
-    password_api:
-        description:
-            - API password.
-        required: true
-        type: str
-        no_log: true
 
 """
 
@@ -91,24 +75,15 @@ EXAMPLES = """
     lastname: "Doe"
     login: "jdoe"
     password: "secret"
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password_api: "secret"
 
 - name: Get a user by ID
   user:
     state: get
     user_id: 1
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password_api: "secret"
 
 - name: List all users
   user:
     state: get
-    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
-    username: "admin"
-    password_api: "secret"
 """
 
 RETURN = """
@@ -118,16 +93,38 @@ user:
     returned: always
 """
 
-def run_cli_command(args):
+def run_cli_command(args, module=None, allow_not_found=False):
+    if module and module._verbosity >= 2:
+        module.warn(f"Running CLI command: {' '.join(args)}")
     try:
         result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        if module and module._verbosity >= 2:
+            module.warn(f"CLI stdout: {result.stdout.strip()}")
+            if result.stderr.strip():
+                module.warn(f"CLI stderr: {result.stderr.strip()}")
         return result.stdout
     except subprocess.CalledProcessError as e:
-        raise Exception(f"multiflexi-cli error: {e.stderr.strip()}")
+        stdout = e.stdout.strip() if hasattr(e, 'stdout') and e.stdout else ''
+        stderr = e.stderr.strip() if hasattr(e, 'stderr') and e.stderr else ''
+        if module and module._verbosity >= 2:
+            module.warn(f"CLI error: {stderr}")
+            if stdout:
+                module.warn(f"CLI stdout (on error): {stdout}")
+        # If CLI returned JSON in stdout, try to parse and show message
+        try:
+            if stdout:
+                data = json.loads(stdout)
+                if allow_not_found and isinstance(data, dict) and data.get('status') == 'not found':
+                    return stdout  # allow caller to handle not found
+                if isinstance(data, dict) and data.get('message'):
+                    raise Exception(f"multiflexi-cli error: {data.get('message')}")
+        except Exception:
+            pass
+        raise Exception(f"multiflexi-cli error: {stderr or stdout or str(e)}")
 
 def run_module():
     module_args = dict(
-        state=dict(type='str', required=True, choices=['present', 'get']),
+        state=dict(type='str', required=False, choices=['present', 'get']),
         user_id=dict(type='int', required=False),
         enabled=dict(type='bool', required=False),
         settings=dict(type='str', required=False),
@@ -136,9 +133,6 @@ def run_module():
         lastname=dict(type='str', required=False),
         password=dict(type='str', required=False),
         login=dict(type='str', required=False),
-        api_url=dict(type='str', required=True),
-        username=dict(type='str', required=True),
-        password_api=dict(type='str', required=True, no_log=True),
     )
 
     result = dict(
@@ -151,11 +145,12 @@ def run_module():
         supports_check_mode=True
     )
 
-    state = module.params['state']
+    state = module.params.get('state')
     cli_base = ['multiflexi-cli', 'user']
 
     try:
-        if state == 'get':
+        # If no state is provided, default to info/read (get)
+        if not state:
             # Use the most specific identifier: user_id > login > email
             if module.params.get('user_id'):
                 args = cli_base + ['get', '--id', str(module.params['user_id']), '--format', 'json', '--verbose']
@@ -165,43 +160,94 @@ def run_module():
                 args = cli_base + ['get', '--email', module.params['email'], '--format', 'json', '--verbose']
             else:
                 args = cli_base + ['list', '--format', 'json', '--verbose']
-            output = run_cli_command(args)
+            output = run_cli_command(args, module=module, allow_not_found=True)
+            user = json.loads(output)
+            if isinstance(user, dict) and user.get('status') == 'not found':
+                result['user'] = None
+            else:
+                result['user'] = user
+            module.exit_json(**result)
+        elif state == 'get':
+            # Use the most specific identifier: user_id > login > email
+            if module.params.get('user_id'):
+                args = cli_base + ['get', '--id', str(module.params['user_id']), '--format', 'json', '--verbose']
+            elif module.params.get('login'):
+                args = cli_base + ['get', '--login', module.params['login'], '--format', 'json', '--verbose']
+            elif module.params.get('email'):
+                args = cli_base + ['get', '--email', module.params['email'], '--format', 'json', '--verbose']
+            else:
+                args = cli_base + ['list', '--format', 'json', '--verbose']
+            output = run_cli_command(args, module=module)
             result['user'] = json.loads(output)
             module.exit_json(**result)
         elif state == 'present':
             # 1. Check for existing user by user_id > login > email
             found_user_id = None
+            user_data = None
             if module.params.get('user_id'):
                 check_args = cli_base + ['get', '--id', str(module.params['user_id']), '--format', 'json', '--verbose']
-                output = run_cli_command(check_args)
+                output = run_cli_command(check_args, module=module, allow_not_found=True)
                 user = json.loads(output)
-                if user and isinstance(user, dict) and user.get('id'):
+                if user and isinstance(user, dict) and user.get('id') and user.get('status') != 'not found':
                     found_user_id = user['id']
+                    user_data = user
             elif module.params.get('login'):
-                check_args = cli_base + ['list', '--format', 'json', '--login', module.params['login'], '--verbose']
-                output = run_cli_command(check_args)
-                users = json.loads(output)
-                if users and isinstance(users, list) and len(users) > 0:
-                    found_user_id = users[0].get('id')
+                check_args = cli_base + ['get', '--login', module.params['login'], '--format', 'json', '--verbose']
+                output = run_cli_command(check_args, module=module, allow_not_found=True)
+                user = json.loads(output)
+                if user and isinstance(user, dict) and user.get('id') and user.get('status') != 'not found':
+                    found_user_id = user['id']
+                    user_data = user
             elif module.params.get('email'):
-                check_args = cli_base + ['list', '--format', 'json', '--email', module.params['email'], '--verbose']
-                output = run_cli_command(check_args)
-                users = json.loads(output)
-                if users and isinstance(users, list) and len(users) > 0:
-                    found_user_id = users[0].get('id')
-            # 2. Create or update
-            if found_user_id:
-                args = cli_base + ['update', '--id', str(found_user_id)]
-                result['changed'] = True
-            else:
-                args = cli_base + ['create']
-                result['changed'] = True
+                check_args = cli_base + ['get', '--email', module.params['email'], '--format', 'json', '--verbose']
+                output = run_cli_command(check_args, module=module, allow_not_found=True)
+                user = json.loads(output)
+                if user and isinstance(user, dict) and user.get('id') and user.get('status') != 'not found':
+                    found_user_id = user['id']
+                    user_data = user
+            # 2. Idempotency: Only update if any property differs
+            needs_update = False
+            update_params = {}
             for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'password', 'login']:
                 value = module.params.get(param)
-                if value is not None:
-                    args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
-            args += ['--format', 'json']
-            run_cli_command(args)
+                if value is not None and user_data is not None:
+                    # Password is never compared for idempotency
+                    if param == 'password':
+                        continue
+                    # Compare bools and strings
+                    user_val = user_data.get(param)
+                    if isinstance(value, bool):
+                        user_val = bool(user_val)
+                    if value != user_val:
+                        needs_update = True
+                        update_params[param] = value
+            if found_user_id:
+                if needs_update or module.params.get('password') is not None:
+                    args = cli_base + ['update', '--id', str(found_user_id)]
+                    for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'password', 'login']:
+                        value = module.params.get(param)
+                        if value is not None:
+                            args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
+                    args += ['--format', 'json']
+                    try:
+                        run_cli_command(args, module=module)
+                        result['changed'] = True
+                    except Exception as e:
+                        module.fail_json(msg=f"Failed to update user: {str(e)}")
+                else:
+                    result['changed'] = False
+            else:
+                args = cli_base + ['create']
+                for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'password', 'login']:
+                    value = module.params.get(param)
+                    if value is not None:
+                        args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
+                args += ['--format', 'json']
+                try:
+                    run_cli_command(args, module=module)
+                    result['changed'] = True
+                except Exception as e:
+                    module.fail_json(msg=f"Failed to create user: {str(e)}")
             # 3. Always read the record and return as result
             if found_user_id:
                 read_args = cli_base + ['get', '--id', str(found_user_id), '--format', 'json', '--verbose']
@@ -211,8 +257,12 @@ def run_module():
                 read_args = cli_base + ['get', '--email', module.params['email'], '--format', 'json', '--verbose']
             else:
                 read_args = cli_base + ['list', '--format', 'json', '--verbose']
-            output = run_cli_command(read_args)
-            result['user'] = json.loads(output)
+            output = run_cli_command(read_args, module=module)
+            user = json.loads(output)
+            if isinstance(user, dict) and user.get('status') == 'not found':
+                result['user'] = None
+            else:
+                result['user'] = user
             module.exit_json(**result)
         else:
             module.fail_json(msg="Invalid state")

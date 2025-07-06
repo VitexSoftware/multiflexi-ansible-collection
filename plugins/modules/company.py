@@ -204,7 +204,9 @@ def run_module():
             existing, notfound_msg = get_existing_company()
             changed = False
             update_fields = {}
-            for param in ['slug', 'name', 'customer', 'enabled', 'settings', 'logo', 'ic', 'DatCreate', 'DatUpdate', 'email']:
+            # Always include slug for create/update
+            update_fields['slug'] = module.params.get('slug')
+            for param in ['name', 'customer', 'enabled', 'settings', 'logo', 'ic', 'DatCreate', 'DatUpdate', 'email']:
                 desired = module.params.get(param)
                 if desired is not None:
                     if not existing or str(existing.get(param)) != str(int(desired)) if isinstance(desired, bool) else str(desired):
