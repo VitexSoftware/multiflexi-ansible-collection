@@ -1,26 +1,25 @@
 ---
-- name: Create a job using MultiFlexi API
-  debug:
-    msg: "Job creation task would go here."
-    - name: Schedule runtemplate using multiflexi-cli
-      ansible.builtin.command:
-        cmd: >
-          multiflexi-cli schedule runtemplate
-          --template "{{ runtemplate_name }}"
-          --params "{{ runtemplate_params | to_json }}"
-      register: schedule_result
+- name: Create a job using MultiFlexi
+  job:
+    state: present
+    app_id: "{{ app_id | default(omit) }}"
+    runtemplate_id: "{{ runtemplate_id | default(omit) }}"
+    scheduled: "{{ scheduled | default(omit) }}"
+    executor: "{{ executor | default('native') }}"
+  register: job_result
 
-    - name: Print schedule_result for debugging
-      ansible.builtin.debug:
-        var: schedule_result
+- name: Print job_result for debugging
+  ansible.builtin.debug:
+    var: job_result
 
-    - name: Assert that scheduling was successful
-      ansible.builtin.assert:
-        that:
-          - schedule_result.rc == 0
-        fail_msg: "Failed to schedule runtemplate"
-        success_msg: "Runtemplate scheduled successfully"
+- name: Assert that job creation was successful
+  ansible.builtin.assert:
+    that:
+      - job_result.job is defined
+      - job_result.job.id is defined
+    fail_msg: "Failed to create or schedule job"
+    success_msg: "Job created and scheduled successfully"
 
-    - name: Set fact with scheduled job info
-      ansible.builtin.set_fact:
-        scheduled_job_info: "{{ schedule_result.stdout | from_json if schedule_result.stdout | length > 0 else {} }}"
+- name: Set fact with scheduled job info
+  ansible.builtin.set_fact:
+    scheduled_job_info: "{{ job_result.job }}"
