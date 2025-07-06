@@ -11,16 +11,28 @@ import json
 def run_cli(module, args):
     cli = 'multiflexi-cli'
     cmd = [cli] + args + ['--verbose', '--format', 'json']
+    # Print command in debug mode
+    if hasattr(module, '_verbosity') and module._verbosity >= 2:
+        module.warn(f"[DEBUG] Running command: {' '.join(cmd)}")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        # Print output in debug mode
+        if hasattr(module, '_verbosity') and module._verbosity >= 2:
+            module.warn(f"[DEBUG] CLI stdout: {result.stdout.strip()}")
+            if result.stderr.strip():
+                module.warn(f"[DEBUG] CLI stderr: {result.stderr.strip()}")
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
         try:
             err = json.loads(e.stdout or e.stderr)
         except Exception:
             err = e.stdout or e.stderr
+        if hasattr(module, '_verbosity') and module._verbosity >= 2:
+            module.warn(f"[DEBUG] CLI error: {err}")
         module.fail_json(msg=f"CLI error: {err}", rc=e.returncode)
     except Exception as e:
+        if hasattr(module, '_verbosity') and module._verbosity >= 2:
+            module.warn(f"[DEBUG] Failed to run CLI: {e}")
         module.fail_json(msg=f"Failed to run CLI: {e}")
 
 
@@ -31,10 +43,9 @@ def find_existing_runtemplate(module):
         if isinstance(res, dict) and res.get('id'):
             return res
     elif module.params.get('name'):
-        templates = run_cli(module, ['runtemplate', 'list'])
-        for tpl in templates if isinstance(templates, list) else []:
-            if tpl.get('name') == module.params['name']:
-                return tpl
+        res = run_cli(module, ['runtemplate', 'get', '--name', module.params['name']])
+        if isinstance(res, dict) and res.get('id'):
+            return res
     return None
 
 
@@ -44,15 +55,14 @@ def run_module():
         runtemplate_id=dict(type='int', required=False),
         name=dict(type='str', required=False),
         app_id=dict(type='int', required=False),
+        app_uuid=dict(type='str', required=False),
         company_id=dict(type='int', required=False),
+        company=dict(type='str', required=False),  # <-- new option
         active=dict(type='bool', required=False),
         iterv=dict(type='str', required=False),
         prepared=dict(type='bool', required=False),
         success=dict(type='str', required=False),
         fail=dict(type='str', required=False),
-        api_url=dict(type='str', required=True),
-        username=dict(type='str', required=True),
-        password=dict(type='str', required=True, no_log=True),
     )
 
     result = dict(
@@ -81,10 +91,15 @@ def run_module():
         if tpl:
             # Update
             update_args = ['runtemplate', 'update', '--id', str(tpl['id'])]
-            for field in ['name', 'app_id', 'company_id', 'active', 'iterv', 'prepared', 'success', 'fail']:
+            for field in ['name', 'company_id', 'company', 'active', 'iterv', 'prepared', 'success', 'fail']:
                 val = module.params.get(field)
                 if val is not None:
                     update_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
+            # Prefer app_uuid over app_id if provided
+            if module.params.get('app_uuid'):
+                update_args += ['--app_uuid', module.params['app_uuid']]
+            elif module.params.get('app_id'):
+                update_args += ['--app_id', str(module.params['app_id'])]
             if module.check_mode:
                 result['changed'] = True
                 result['runtemplate'] = tpl
@@ -97,10 +112,15 @@ def run_module():
         else:
             # Create
             create_args = ['runtemplate', 'create']
-            for field in ['name', 'app_id', 'company_id', 'active', 'iterv', 'prepared', 'success', 'fail']:
+            for field in ['name', 'company_id', 'company', 'active', 'iterv', 'prepared', 'success', 'fail']:
                 val = module.params.get(field)
                 if val is not None:
                     create_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
+            # Prefer app_uuid over app_id if provided
+            if module.params.get('app_uuid'):
+                create_args += ['--app_uuid', module.params['app_uuid']]
+            elif module.params.get('app_id'):
+                create_args += ['--app_id', str(module.params['app_id'])]
             if module.check_mode:
                 result['changed'] = True
                 result['runtemplate'] = None
