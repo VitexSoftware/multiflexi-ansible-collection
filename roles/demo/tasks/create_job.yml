@@ -1,4 +1,0 @@
----
-- name: Create a job using MultiFlexi API
-  debug:
-    msg: "Job creation task would go here."

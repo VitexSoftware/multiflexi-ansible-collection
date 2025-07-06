@@ -1,4 +1,35 @@
 ---
-- name: Create a user using MultiFlexi API
-  debug:
-    msg: "User creation task would go here."
+- name: Create a user in MultiFlexi
+  user:
+    state: present
+    login: "demo"
+    email: "demo@multiflexi.eu"
+    firstname: "John"
+    lastname: "Doe"
+    password: "demo"
+    enabled: true
+  register: user_result
+
+- name: Show user creation result
+  ansible.builtin.debug:
+    var: user_result
+
+- name: Ensure the user "demo" exists
+  user:
+    login: "demo"
+  register: user_info_result
+
+- name: Show user information
+  ansible.builtin.debug:
+    var: user_info_result
+
+- name: Ensure the user "demo" exists and has correct properties
+  ansible.builtin.assert:
+    that:
+      - user_info_result.user is defined
+      - user_info_result.user.login == "demo"
+      - user_info_result.user.email == "demo@multiflexi.eu"
+      - user_info_result.user.firstname == "John"
+      - user_info_result.user.lastname == "Doe"
+      - user_info_result.user.enabled | bool
+    msg: "User 'demo' does not exist or has incorrect properties."

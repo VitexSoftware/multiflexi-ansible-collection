@@ -1,0 +1,25 @@
+---
+- name: Create runtemplate for demo application
+  runtemplate:
+    state: present
+    name: demo_runtemplate
+    app_id: "{{ demo_app_id | default(omit) }}"
+    # Add other required fields as needed, e.g. company_id, active, etc.
+  register: runtemplate_create_result
+
+- name: Debug runtemplate creation result
+  ansible.builtin.debug:
+    var: runtemplate_create_result
+
+- name: Assert runtemplate creation was successful
+  ansible.builtin.assert:
+    that:
+      - runtemplate_create_result.runtemplate is defined
+      - runtemplate_create_result.runtemplate.name == 'demo_runtemplate'
+    fail_msg: "Runtemplate creation failed: {{ runtemplate_create_result }}"
+
+# The following step for scheduling a run should also use a module if available. If not, document as a TODO.
+- name: Schedule run using the created runtemplate
+  # TODO: Replace with an Ansible module for scheduling runs when available
+  ansible.builtin.debug:
+    msg: "This step should use an Ansible module for scheduling runs, not a direct CLI command."

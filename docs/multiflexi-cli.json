@@ -127,7 +127,7 @@
             "action": {
                 "name": "action",
                 "is_required": true,
-                "description": "Action: list|get|create|update",
+                "description": "Action: list|get|create|update|delete",
                 "default": null
             }
         },
@@ -271,11 +271,11 @@
                 "description": "Email",
                 "default": null
             },
-            "code": {
-                "name": "code",
+            "slug": {
+                "name": "slug",
                 "shortcut": null,
                 "is_value_required": true,
-                "description": "Company Code",
+                "description": "Company Slug",
                 "default": null
             }
         }
@@ -327,7 +327,7 @@
             "action": {
                 "name": "action",
                 "is_required": true,
-                "description": "Action: list|get|create|update|delete",
+                "description": "Action: list|get|create|update|delete|schedule",
                 "default": null
             }
         },
@@ -386,6 +386,27 @@
                 "shortcut": null,
                 "is_value_required": true,
                 "description": "Application config key=value (repeatable)",
+                "default": []
+            },
+            "schedule_time": {
+                "name": "schedule_time",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Schedule time for launch (Y-m-d H:i:s or \"now\")",
+                "default": "now"
+            },
+            "executor": {
+                "name": "executor",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Executor to use for launch",
+                "default": "Native"
+            },
+            "env": {
+                "name": "env",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Environment override key=value (repeatable)",
                 "default": []
             }
         }
@@ -449,6 +470,13 @@
                 "is_value_required": true,
                 "description": "Password",
                 "default": null
+            },
+            "enabled": {
+                "name": "enabled",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Enabled (true\/false)",
+                "default": null
             }
         }
     },
@@ -487,15 +515,8 @@
             "description": {
                 "name": "description",
                 "shortcut": null,
-                "is_value_required": true,
+                "is_value_required": false,
                 "description": "Description",
-                "default": null
-            },
-            "appversion": {
-                "name": "appversion",
-                "shortcut": null,
-                "is_value_required": true,
-                "description": "Application Version",
                 "default": null
             },
             "topics": {
@@ -522,15 +543,22 @@
             "ociimage": {
                 "name": "ociimage",
                 "shortcut": null,
-                "is_value_required": true,
+                "is_value_required": false,
                 "description": "OCI Image",
                 "default": null
             },
             "requirements": {
                 "name": "requirements",
                 "shortcut": null,
-                "is_value_required": true,
+                "is_value_required": false,
                 "description": "Requirements",
+                "default": null
+            },
+            "homepage": {
+                "name": "homepage",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Homepage URL",
                 "default": null
             },
             "json": {
@@ -538,6 +566,13 @@
                 "shortcut": null,
                 "is_value_required": true,
                 "description": "Path to JSON file for import\/export\/remove",
+                "default": null
+            },
+            "appversion": {
+                "name": "appversion",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Application Version",
                 "default": null
             }
         }
@@ -635,6 +670,26 @@
                 "description": "Application UUID",
                 "default": null
             },
+            "format": {
+                "name": "format",
+                "shortcut": "f",
+                "is_value_required": false,
+                "description": "The output format: text or json. Defaults to text.",
+                "default": "text"
+            }
+        }
+    },
+    "queue": {
+        "description": "Queue operations (list, truncate)",
+        "arguments": {
+            "action": {
+                "name": "action",
+                "is_required": true,
+                "description": "Action: list|truncate",
+                "default": null
+            }
+        },
+        "options": {
             "format": {
                 "name": "format",
                 "shortcut": "f",

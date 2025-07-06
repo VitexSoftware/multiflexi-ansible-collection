@@ -1,4 +1,31 @@
 ---
-- name: Create an application using MultiFlexi API
-  debug:
-    msg: "Application creation task would go here."
+- name: Create an application in MultiFlexi
+  application:
+    state: present
+    name: "FreeApp"
+    executable: "/usr/bin/free"
+    description: "A free application for demonstration purposes."
+    uuid: "78fa718c-7ca2-4a38-840e-8e5f0db06432"
+    homepage: "https://example.com/freeapp"
+  register: app_result
+
+- name: Show application creation result
+  ansible.builtin.debug:
+    var: app_result
+
+- name: Ensure the application "FreeApp" exists
+  application:
+    name: "FreeApp"
+  register: app_info_result
+
+- name: Show application information
+  ansible.builtin.debug:
+    var: app_info_result
+
+- name: Ensure the application "FreeApp" exists and has correct properties
+  ansible.builtin.assert:
+    that:
+      - app_info_result.app is defined
+      - app_info_result.app.name == "FreeApp"
+      - app_info_result.app.executable == "/usr/bin/free"
+    msg: "Application 'FreeApp' does not exist or has incorrect properties."

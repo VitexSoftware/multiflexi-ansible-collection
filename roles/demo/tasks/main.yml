@@ -9,10 +9,11 @@
 - name: Include tasks from the demo role
   ansible.builtin.include_tasks: "{{ item }}"
   loop:
-    - create_company.yml
     - create_user.yml
+    - create_company.yml
     - create_app.yml
-    - create_job.yml
+    - create_runtemplate.yml
+    - manage_job.yml
     - manage_credential_type.yml
     - manage_topic.yml
   tags: demo_tasks

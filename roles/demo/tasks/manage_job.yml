@@ -1,0 +1,26 @@
+---
+- name: Create a job using MultiFlexi API
+  debug:
+    msg: "Job creation task would go here."
+    - name: Schedule runtemplate using multiflexi-cli
+      ansible.builtin.command:
+        cmd: >
+          multiflexi-cli schedule runtemplate
+          --template "{{ runtemplate_name }}"
+          --params "{{ runtemplate_params | to_json }}"
+      register: schedule_result
+
+    - name: Print schedule_result for debugging
+      ansible.builtin.debug:
+        var: schedule_result
+
+    - name: Assert that scheduling was successful
+      ansible.builtin.assert:
+        that:
+          - schedule_result.rc == 0
+        fail_msg: "Failed to schedule runtemplate"
+        success_msg: "Runtemplate scheduled successfully"
+
+    - name: Set fact with scheduled job info
+      ansible.builtin.set_fact:
+        scheduled_job_info: "{{ schedule_result.stdout | from_json if schedule_result.stdout | length > 0 else {} }}"
