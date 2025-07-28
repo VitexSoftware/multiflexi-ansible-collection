@@ -1,0 +1,17 @@
+---
+- name: Install basic packages
+  ansible.builtin.apt:
+    name:
+      [
+        "apache2",
+        "libapache2-mod-php",
+        "python3-certbot-apache",
+      ]
+    state: present
+    update_cache: true
+  become: true
+- name: Enabled mod_rewrite
+  community.general.apache2_module:
+    name: rewrite
+    state: present
+  become: true

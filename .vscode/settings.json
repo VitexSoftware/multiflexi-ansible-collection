@@ -21,5 +21,6 @@
         "statusBar.border": "#D6AD60"
     },
     "python-envs.defaultEnvManager": "ms-python.python:venv",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "ansible.python.interpreterPath": "/home/vitex/Projects/Multi/multiflexi-ansible-collection/.venv/bin/python"
 }

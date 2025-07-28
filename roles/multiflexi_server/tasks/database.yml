@@ -1,0 +1,9 @@
+---
+
+- name: Include MySQL tasks
+  ansible.builtin.include_tasks:
+    file: mysql.yml
+  when: multiflexi_server_db_type == 'mysql'
+  tags: ['multiflexi', 'mysql']
+
+

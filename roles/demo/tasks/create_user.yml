@@ -8,6 +8,8 @@
     lastname: "Doe"
     password: "demo"
     enabled: true
+  become: true
+  
   register: user_result
 
 - name: Show user creation result
@@ -17,6 +19,8 @@
 - name: Ensure the user "demo" exists
   user:
     login: "demo"
+  become: true
+  
   register: user_info_result
 
 - name: Show user information

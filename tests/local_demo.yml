@@ -1,7 +1,7 @@
 ---
 - name: Manage demo.multiflexi.eu and apply demo role
-  hosts: demo.multiflexi.eu
-  connection: local
-  gather_facts: false
+  hosts: all
+  gather_facts: true
   roles:
+    - multiflexi_server
     - demo

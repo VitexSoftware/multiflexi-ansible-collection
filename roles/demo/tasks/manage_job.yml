@@ -6,6 +6,8 @@
     runtemplate_id: "{{ runtemplate_id | default(omit) }}"
     scheduled: "{{ scheduled | default(omit) }}"
     executor: "{{ executor | default('native') }}"
+  become: true
+  
   register: job_result
 
 - name: Print job_result for debugging

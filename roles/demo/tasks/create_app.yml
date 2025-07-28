@@ -7,6 +7,8 @@
     description: "A free application for demonstration purposes."
     uuid: "78fa718c-7ca2-4a38-840e-8e5f0db06432"
     homepage: "https://example.com/freeapp"
+  become: true
+  
   register: app_result
 
 - name: Show application creation result
@@ -16,6 +18,8 @@
 - name: Ensure the application "FreeApp" exists
   application:
     name: "FreeApp"
+  become: true
+  
   register: app_info_result
 
 - name: Show application information

@@ -2,6 +2,8 @@
 - name: Ensure the MultiFlexi is installed
   multiflexi_info:
   register: multiflexi_info
+  become: true
+  
 - name: Show MultiFlexi information
   ansible.builtin.debug:
     var: multiflexi_info
