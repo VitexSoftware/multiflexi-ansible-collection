@@ -1,0 +1,29 @@
+---
+# - name: Install system TODO
+#   ansible.builtin.apt:
+#     name: ["abraflexi-webhook-acceptor-mysql", "multiflexi-mysql"]
+#     state: present
+
+- name: Install MultiFlexi multi package
+  ansible.builtin.apt:
+    name: 'multiflexi-{{ multiflexi_server_db_type | default("sqlite") }}'
+    state: present
+  become: true
+  when: multiflexi_server_db_type in multiflexi_server_database_engines
+  tags: ['multiflexi']
+
+- name: Install MultiFlexi Commandline interface
+  ansible.builtin.apt:
+    name: 'multiflexi-cli'
+    state: present
+  become: true
+  when: multiflexi_server_db_type in multiflexi_server_database_engines
+  tags: ['multiflexi', 'cli']
+
+- name: Install MultiFlexi API server
+  ansible.builtin.apt:
+    name: 'multiflexi-api'
+    state: present
+  become: true
+  when: multiflexi_server_db_type in multiflexi_server_database_engines
+  tags: ['multiflexi', 'api']

@@ -1,0 +1,7 @@
+---
+- name: Include Apache tasks
+  ansible.builtin.include_tasks:
+    file: apache.yml
+  when: multiflexi_server_webserver_type == 'apache'
+  tags: ['multiflexi', 'apache']
+

@@ -1,0 +1,17 @@
+---
+- name: Install basic packages
+  ansible.builtin.apt:
+    name:
+      [
+        "mariadb-server",
+      ]
+    state: present
+    update_cache: true
+  become: true
+
+- name: Start mysql server and enable it on reboot
+  ansible.builtin.service:
+    name: mysql
+    state: started
+    enabled: true # debian: mysql
+  become: true

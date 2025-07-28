@@ -5,7 +5,9 @@
     name: demo_runtemplate
     app_uuid: "{{ demo_app_id | default('78fa718c-7ca2-4a38-840e-8e5f0db06432') }}"
     company: "{{ demo_company_id | default('DEMO') }}"
-    # Add other required fields as needed, e.g. company_id, active, etc.
+    become: true
+    
+   # Add other required fields as needed, e.g. company_id, active, etc.
   register: runtemplate_create_result
 
 - name: Debug runtemplate creation result

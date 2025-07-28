@@ -1,0 +1,20 @@
+---
+- name: Download the VitexSoftware GPG key
+  ansible.builtin.get_url:
+    url: http://repo.vitexsoftware.com/keyring.gpg
+    dest: /usr/share/keyrings/vitexsoftware-archive-keyring.gpg
+    mode: '0644'
+  become: true
+
+- name: Ensure the gpg binary is installed
+  ansible.builtin.apt:
+    name: gnupg
+    state: present
+  become: true
+
+- name: Add VitexSoftware repo for {{ ansible_distribution_release }}
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/vitexsoftware-archive-keyring.gpg] http://repo.vitexsoftware.com {{ ansible_distribution_release }} main backports"
+    state: present
+    filename: vitexsoftware
+  become: true

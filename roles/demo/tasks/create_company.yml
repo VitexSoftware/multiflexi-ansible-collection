@@ -7,6 +7,8 @@
     slug: "DEMO"
     email: "demo@example.com"
     state: present
+  become: true
+  
   register: company_result
 
 - name: Show company creation result
@@ -16,6 +18,8 @@
 - name: Ensure the company "demo" exists
   company_info:
     name: "demo"
+  become: true
+  
   register: company_info_result
 
 - name: Show company information
