@@ -1,6 +1,6 @@
 ---
 - name: Create a user in MultiFlexi
-  user:
+  vitexus.multiflexi.user:
     state: present
     login: "demo"
     email: "demo@multiflexi.eu"
@@ -17,7 +17,8 @@
     var: user_result
 
 - name: Ensure the user "demo" exists
-  user:
+  vitexus.multiflexi.user:
+    state: get
     login: "demo"
   become: true
   

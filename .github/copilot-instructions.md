@@ -8,6 +8,12 @@ Use multiflexi-cli to interact with MultiFlexi.
 
 Look to docs/multiflexi-cli.json file for available commands and options.
 
+To obtain the current list of available multiflexi-cli commands, actions, and options, run:
+
+    multiflexi-cli describe
+
+This will output the up-to-date CLI interface and help ensure modules and playbooks use valid options.
+
 Use ansible.builtin.debug to print variables and results for debugging.
 Use ansible.builtin.assert to check conditions and ensure correctness.
 Use ansible.builtin.fail to handle errors gracefully.

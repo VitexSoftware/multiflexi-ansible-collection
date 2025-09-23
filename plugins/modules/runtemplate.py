@@ -23,6 +23,12 @@ def run_cli(module, args):
                 module.warn(f"[DEBUG] CLI stderr: {result.stderr.strip()}")
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
+        # Check for 'not found' in output, return special marker for caller to handle
+        err_output = (e.stdout or '') + (e.stderr or '')
+        if 'not found' in err_output.lower():
+            if hasattr(module, '_verbosity') and module._verbosity >= 2:
+                module.warn(f"[DEBUG] CLI error: {err_output.strip()}")
+            return {'_not_found': True, '_cli_error': err_output.strip()}
         try:
             err = json.loads(e.stdout or e.stderr)
         except Exception:
@@ -37,15 +43,25 @@ def run_cli(module, args):
 
 
 def find_existing_runtemplate(module):
-    # Priority: runtemplate_id > name
+    # Priority: runtemplate_id > (name + company/company_id)
     if module.params.get('runtemplate_id'):
         res = run_cli(module, ['runtemplate', 'get', '--id', str(module.params['runtemplate_id'])])
         if isinstance(res, dict) and res.get('id'):
             return res
+        if isinstance(res, dict) and res.get('_not_found'):
+            return None
     elif module.params.get('name'):
-        res = run_cli(module, ['runtemplate', 'get', '--name', module.params['name']])
+        args = ['runtemplate', 'get', '--name', module.params['name']]
+        # Add company or company_id if provided
+        if module.params.get('company'):
+            args += ['--company', module.params['company']]
+        elif module.params.get('company_id'):
+            args += ['--company_id', str(module.params['company_id'])]
+        res = run_cli(module, args)
         if isinstance(res, dict) and res.get('id'):
             return res
+        if isinstance(res, dict) and res.get('_not_found'):
+            return None
     return None
 
 
@@ -59,7 +75,7 @@ def run_module():
         company_id=dict(type='int', required=False),
         company=dict(type='str', required=False),  # <-- new option
         active=dict(type='bool', required=False),
-        iterv=dict(type='str', required=False),
+        interv=dict(type='str', required=False),
         prepared=dict(type='bool', required=False),
         success=dict(type='str', required=False),
         fail=dict(type='str', required=False),
@@ -91,7 +107,7 @@ def run_module():
         if tpl:
             # Update
             update_args = ['runtemplate', 'update', '--id', str(tpl['id'])]
-            for field in ['name', 'company_id', 'company', 'active', 'iterv', 'prepared', 'success', 'fail']:
+            for field in ['name', 'company_id', 'company', 'active', 'interv', 'prepared', 'success', 'fail']:
                 val = module.params.get(field)
                 if val is not None:
                     update_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
@@ -112,7 +128,7 @@ def run_module():
         else:
             # Create
             create_args = ['runtemplate', 'create']
-            for field in ['name', 'company_id', 'company', 'active', 'iterv', 'prepared', 'success', 'fail']:
+            for field in ['name', 'company_id', 'company', 'active', 'interv', 'prepared', 'success', 'fail']:
                 val = module.params.get(field)
                 if val is not None:
                     create_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
@@ -121,6 +137,8 @@ def run_module():
                 create_args += ['--app_uuid', module.params['app_uuid']]
             elif module.params.get('app_id'):
                 create_args += ['--app_id', str(module.params['app_id'])]
+            if hasattr(module, '_verbosity') and module._verbosity >= 2:
+                module.warn(f"[DEBUG] Creating runtemplate with: {' '.join(create_args)}")
             if module.check_mode:
                 result['changed'] = True
                 result['runtemplate'] = None

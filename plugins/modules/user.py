@@ -55,7 +55,7 @@ options:
         type: str
     password:
         description:
-            - Password.
+            - Password (plaintext - will be automatically hashed by MultiFlexi).
         required: false
         type: str
     login:
@@ -208,12 +208,10 @@ def run_module():
             # 2. Idempotency: Only update if any property differs
             needs_update = False
             update_params = {}
-            for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'password', 'login']:
+            password_provided = module.params.get('password') is not None
+            for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'login']:
                 value = module.params.get(param)
                 if value is not None and user_data is not None:
-                    # Password is never compared for idempotency
-                    if param == 'password':
-                        continue
                     # Compare bools and strings
                     user_val = user_data.get(param)
                     if isinstance(value, bool):
@@ -222,12 +220,15 @@ def run_module():
                         needs_update = True
                         update_params[param] = value
             if found_user_id:
-                if needs_update or module.params.get('password') is not None:
+                if needs_update or password_provided:
                     args = cli_base + ['update', '--id', str(found_user_id)]
-                    for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'password', 'login']:
+                    for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'login']:
                         value = module.params.get(param)
                         if value is not None:
                             args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
+                    # Handle password separately using --plaintext
+                    if password_provided:
+                        args += ['--plaintext', module.params.get('password')]
                     args += ['--format', 'json']
                     try:
                         run_cli_command(args, module=module)
@@ -238,10 +239,13 @@ def run_module():
                     result['changed'] = False
             else:
                 args = cli_base + ['create']
-                for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'password', 'login']:
+                for param in ['enabled', 'settings', 'email', 'firstname', 'lastname', 'login']:
                     value = module.params.get(param)
                     if value is not None:
                         args += [f'--{param}', str(int(value)) if isinstance(value, bool) else str(value)]
+                # Handle password separately using --plaintext
+                if password_provided:
+                    args += ['--plaintext', module.params.get('password')]
                 args += ['--format', 'json']
                 try:
                     run_cli_command(args, module=module)

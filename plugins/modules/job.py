@@ -90,17 +90,31 @@ job:
 
 def run_cli(module, args):
     cli = module.params.get('multiflexi_cli', 'multiflexi-cli')
-    cmd = [cli] + args + ['--verbose', '--output', 'json']
+    # Always use --format json for all commands, including job create
+    cmd = [cli] + args + ['--verbose', '--format', 'json']
+    # Always print the CLI command being run
+    module.warn(f"Running CLI command: {' '.join(cmd)}")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        # Always print stdout and stderr
+        module.warn(f"CLI stdout: {result.stdout.strip()}")
+        if result.stderr.strip():
+            module.warn(f"CLI stderr: {result.stderr.strip()}")
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
+        # Always print error output
+        stdout = e.stdout or ''
+        stderr = e.stderr or ''
+        module.warn(f"CLI error: {stderr.strip()}")
+        if stdout.strip():
+            module.warn(f"CLI stdout (on error): {stdout.strip()}")
         try:
-            err = json.loads(e.stdout or e.stderr)
+            err = json.loads(stdout or stderr)
         except Exception:
-            err = e.stdout or e.stderr
+            err = stdout or stderr
         module.fail_json(msg=f"CLI error: {err}", rc=e.returncode)
     except Exception as e:
+        module.warn(f"Failed to run CLI: {e}")
         module.fail_json(msg=f"Failed to run CLI: {e}")
 
 def find_existing_job(module):
