@@ -1,0 +1,24 @@
+GALAXY_NAMESPACE := $(shell awk -F': ' '/^namespace:/{print $$2}' galaxy.yml)
+GALAXY_NAME := $(shell awk -F': ' '/^name:/{print $$2}' galaxy.yml)
+GALAXY_VERSION := $(shell awk -F': ' '/^version:/{print $$2}' galaxy.yml)
+
+.PHONY: galaxy-build galaxy-publish galaxy-tag galaxy-release
+
+# Build the collection artifact
+galaxy-build:
+	ansible-galaxy collection build --force
+
+# Publish the latest built artifact to Galaxy
+# Requires: export ANSIBLE_GALAXY_API_KEY=... (or use --token)
+galaxy-publish:
+	ARTIFACT=$$(ls -1t $(GALAXY_NAMESPACE)-$(GALAXY_NAME)-$(GALAXY_VERSION).tar.gz dist/*.tar.gz 2>/dev/null | head -n1); \
+	if [ -z "$$ARTIFACT" ]; then echo "No artifact found. Run 'make galaxy-build' first."; exit 1; fi; \
+	ansible-galaxy collection publish "$$ARTIFACT"
+
+# Create and push git tag for the current version
+galaxy-tag:
+	git tag -a v$(GALAXY_VERSION) -m "Release v$(GALAXY_VERSION)" || true
+	git push origin v$(GALAXY_VERSION) || true
+
+# Build, tag, and publish in one step
+galaxy-release: galaxy-build galaxy-tag galaxy-publish
