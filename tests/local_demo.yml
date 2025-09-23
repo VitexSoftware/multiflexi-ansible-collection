@@ -3,5 +3,5 @@
   hosts: all
   gather_facts: true
   roles:
-    - multiflexi_server
+    # - multiflexi_server
     - demo

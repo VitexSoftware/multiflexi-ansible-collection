@@ -1,13 +1,12 @@
 ---
+
 - name: Create a job using MultiFlexi
-  job:
+  vitexus.multiflexi.job:
     state: present
-    app_id: "{{ app_id | default(omit) }}"
-    runtemplate_id: "{{ runtemplate_id | default(omit) }}"
-    scheduled: "{{ scheduled | default(omit) }}"
+    runtemplate_id: "{{ runtemplate_create_result.runtemplate.id }}"
+    scheduled: "{{ scheduled | default('now') }}"
     executor: "{{ executor | default('native') }}"
   become: true
-  
   register: job_result
 
 - name: Print job_result for debugging

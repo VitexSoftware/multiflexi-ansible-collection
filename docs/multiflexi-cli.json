@@ -127,7 +127,7 @@
             "action": {
                 "name": "action",
                 "is_required": true,
-                "description": "Action: list|get|create|update|delete",
+                "description": "Action: status|list|get|create|update|delete",
                 "default": null
             }
         },
@@ -277,6 +277,20 @@
                 "is_value_required": true,
                 "description": "Company Slug",
                 "default": null
+            },
+            "fields": {
+                "name": "fields",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Comma-separated list of fields to display",
+                "default": null
+            },
+            "zabbix_host": {
+                "name": "zabbix_host",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Zabbix Host",
+                "default": null
             }
         }
     },
@@ -360,6 +374,13 @@
                 "description": "App ID",
                 "default": null
             },
+            "app_uuid": {
+                "name": "app_uuid",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "App UUID",
+                "default": null
+            },
             "company_id": {
                 "name": "company_id",
                 "shortcut": null,
@@ -367,11 +388,25 @@
                 "description": "Company ID",
                 "default": null
             },
+            "company": {
+                "name": "company",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Company slug (string) or ID (integer)",
+                "default": null
+            },
             "interv": {
                 "name": "interv",
                 "shortcut": null,
                 "is_value_required": true,
                 "description": "Interval code",
+                "default": null
+            },
+            "cron": {
+                "name": "cron",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Crontab expression for scheduling",
                 "default": null
             },
             "active": {
@@ -408,6 +443,13 @@
                 "is_value_required": true,
                 "description": "Environment override key=value (repeatable)",
                 "default": []
+            },
+            "fields": {
+                "name": "fields",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Comma-separated list of fields to display",
+                "default": null
             }
         }
     },
@@ -468,7 +510,14 @@
                 "name": "password",
                 "shortcut": null,
                 "is_value_required": true,
-                "description": "Password",
+                "description": "Password (hashed)",
+                "default": null
+            },
+            "plaintext": {
+                "name": "plaintext",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Plaintext password",
                 "default": null
             },
             "enabled": {
@@ -486,7 +535,7 @@
             "action": {
                 "name": "action",
                 "is_required": true,
-                "description": "Action: list|get|create|update|delete|import-json|export-json|remove-json",
+                "description": "Action: list|get|create|update|delete|import-json|export-json|remove-json|validate-json|showconfig",
                 "default": null
             }
         },
@@ -565,7 +614,7 @@
                 "name": "json",
                 "shortcut": null,
                 "is_value_required": true,
-                "description": "Path to JSON file for import\/export\/remove",
+                "description": "Path to JSON file for import\/export\/remove\/validate",
                 "default": null
             },
             "appversion": {
@@ -696,6 +745,33 @@
                 "is_value_required": false,
                 "description": "The output format: text or json. Defaults to text.",
                 "default": "text"
+            }
+        }
+    },
+    "prune": {
+        "description": "Prune logs and jobs, keeping only the latest N records (default: 1000)",
+        "arguments": [],
+        "options": {
+            "logs": {
+                "name": "logs",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Prune logs table",
+                "default": false
+            },
+            "jobs": {
+                "name": "jobs",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Prune jobs table",
+                "default": false
+            },
+            "keep": {
+                "name": "keep",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Number of records to keep",
+                "default": 1000
             }
         }
     }

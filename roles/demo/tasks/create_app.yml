@@ -1,6 +1,6 @@
 ---
 - name: Create an application in MultiFlexi
-  application:
+  vitexus.multiflexi.application:
     state: present
     name: "FreeApp"
     executable: "/usr/bin/free"
@@ -16,7 +16,8 @@
     var: app_result
 
 - name: Ensure the application "FreeApp" exists
-  application:
+  vitexus.multiflexi.application:
+    state: get
     name: "FreeApp"
   become: true
   

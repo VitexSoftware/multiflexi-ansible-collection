@@ -1,7 +1,7 @@
 ---
 
 - name: Create a company named "demo" in MultiFlexi
-  company:
+  vitexus.multiflexi.company:
     name: "demo"
     ic: "12345678"
     slug: "DEMO"
@@ -16,7 +16,7 @@
     var: company_result
 
 - name: Ensure the company "demo" exists
-  company_info:
+  vitexus.multiflexi.company_info:
     name: "demo"
   become: true
   

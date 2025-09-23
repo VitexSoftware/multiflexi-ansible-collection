@@ -1,6 +1,6 @@
 ---
 - name: Ensure the MultiFlexi is installed
-  multiflexi_info:
+  vitexus.multiflexi.multiflexi_info:
   register: multiflexi_info
   become: true
   
