@@ -137,7 +137,7 @@ def run_module():
         logo=dict(type='str', required=False),
         ociimage=dict(type='str', required=False),
         requirements=dict(type='str', required=False),
-        json=dict(type='str', required=False),
+        file=dict(type='str', required=False),
     )
 
     result = dict(
@@ -198,7 +198,7 @@ def run_module():
                     app_data = app
             # Idempotency: Only update if any property differs
             needs_update = False
-            for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'tags', 'appversion', 'ociimage', 'requirements', 'json']:
+            for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'tags', 'appversion', 'ociimage', 'requirements', 'file']:
                 value = module.params.get(param)
                 if value is not None and app_data is not None:
                     app_val = app_data.get(param)
@@ -211,7 +211,7 @@ def run_module():
             # Build args for create/update
             def build_args(base, params):
                 args = base[:]
-                for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'appversion', 'ociimage', 'requirements', 'json']:
+                for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'appversion', 'ociimage', 'requirements', 'file']:
                     value = module.params.get(param)
                     if value is not None:
                         args += [f'--{param}', str(value)]

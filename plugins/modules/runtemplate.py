@@ -7,6 +7,118 @@ from ansible.module_utils.basic import AnsibleModule
 import subprocess
 import json
 
+DOCUMENTATION = """
+---
+module: runtemplate
+short_description: Manage MultiFlexi run templates
+description:
+    - This module allows you to create, update, get, and delete run templates in MultiFlexi.
+author:
+    - Vitex (@Vitexus)
+version_added: "1.0.0"
+options:
+    state:
+        description:
+            - The desired state of the run template.
+        required: true
+        type: str
+        choices: ['present', 'absent', 'get']
+    runtemplate_id:
+        description:
+            - The ID of the run template.
+        required: false
+        type: int
+    name:
+        description:
+            - The name of the run template.
+        required: false
+        type: str
+    app_id:
+        description:
+            - The application ID.
+        required: false
+        type: int
+    app_uuid:
+        description:
+            - The application UUID.
+        required: false
+        type: str
+    company_id:
+        description:
+            - The company ID.
+        required: false
+        type: int
+    company:
+        description:
+            - The company slug/code.
+        required: false
+        type: str
+    active:
+        description:
+            - Whether the run template is active.
+        required: false
+        type: bool
+    interv:
+        description:
+            - Interval specification.
+        required: false
+        type: str
+    prepared:
+        description:
+            - Whether the run template is prepared.
+        required: false
+        type: bool
+    success:
+        description:
+            - Success action.
+        required: false
+        type: str
+    fail:
+        description:
+            - Fail action.
+        required: false
+        type: str
+"""
+
+EXAMPLES = """
+# Create a run template
+- name: Create run template
+  vitexus.multiflexi.runtemplate:
+    state: present
+    name: "Demo Template"
+    app_uuid: "78fa718c-7ca2-4a38-840e-8e5f0db06432"
+    company: "DEMO"
+    active: true
+
+# Get a run template
+- name: Get run template
+  vitexus.multiflexi.runtemplate:
+    state: get
+    name: "Demo Template"
+    company: "DEMO"
+
+# Delete a run template
+- name: Delete run template
+  vitexus.multiflexi.runtemplate:
+    state: absent
+    runtemplate_id: 1
+"""
+
+RETURN = """
+runtemplate:
+    description: The run template object.
+    type: dict
+    returned: always
+    sample:
+        {
+            "id": 1,
+            "name": "Demo Template",
+            "app_id": 1,
+            "company_id": 1,
+            "active": true
+        }
+"""
+
 
 def run_cli(module, args):
     cli = 'multiflexi-cli'
