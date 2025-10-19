@@ -22,7 +22,7 @@ options:
             - The desired state of the credential type.
         required: true
         type: str
-        choices: ['present', 'get']
+        choices: ['present', 'get', 'import', 'export', 'validate']
     credential_type_id:
         description:
             - The ID of the credential type.
@@ -64,6 +64,11 @@ options:
         required: true
         type: str
         no_log: true
+    file:
+        description:
+            - Path to JSON file for import/export/validate operations.
+        required: false
+        type: str
 
 """
 
@@ -92,6 +97,22 @@ EXAMPLES = """
     api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
     username: "admin"
     password: "secret"
+
+- name: Import credential type from JSON
+  credential_type:
+    state: import
+    file: "/path/to/credtype.json"
+    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
+    username: "admin"
+    password: "secret"
+
+- name: Validate credential type JSON
+  credential_type:
+    state: validate
+    file: "/path/to/credtype.json"
+    api_url: "https://demo.multiflexi.com/api/VitexSoftware/MultiFlexi/1.0.0"
+    username: "admin"
+    password: "secret"
 """
 
 RETURN = """
@@ -110,12 +131,13 @@ def run_cli_command(args):
 
 def run_module():
     module_args = dict(
-        state=dict(type='str', required=True, choices=['present', 'get']),
+        state=dict(type='str', required=True, choices=['present', 'get', 'import', 'export', 'validate']),
         credential_type_id=dict(type='int', required=False),
         name=dict(type='str', required=False),
         description=dict(type='str', required=False),
         url=dict(type='str', required=False),
         logo=dict(type='str', required=False),
+        file=dict(type='str', required=False),
         api_url=dict(type='str', required=True),
         username=dict(type='str', required=True),
         password=dict(type='str', required=True, no_log=True),
@@ -138,11 +160,11 @@ def run_module():
         if state == 'get':
             # Use the most specific identifier: credential_type_id > name
             if module.params.get('credential_type_id'):
-                args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--verbose', '--output', 'json']
+                args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--format', 'json']
             elif module.params.get('name'):
-                args = cli_base + ['get', '--name', module.params['name'], '--verbose', '--output', 'json']
+                args = cli_base + ['get', '--name', module.params['name'], '--format', 'json']
             else:
-                args = cli_base + ['list', '--verbose', '--output', 'json']
+                args = cli_base + ['list', '--format', 'json']
             output = run_cli_command(args)
             result['credential_type'] = json.loads(output)
             module.exit_json(**result)
@@ -150,17 +172,17 @@ def run_module():
             # 1. Check for existing credential type by id > name
             found_id = None
             if module.params.get('credential_type_id'):
-                check_args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--verbose', '--output', 'json']
+                check_args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--format', 'json']
                 output = run_cli_command(check_args)
                 cred = json.loads(output)
                 if cred and isinstance(cred, dict) and cred.get('id'):
                     found_id = cred['id']
             elif module.params.get('name'):
-                check_args = cli_base + ['list', '--verbose', '--output', 'json', '--name', module.params['name']]
+                check_args = cli_base + ['get', '--name', module.params['name'], '--format', 'json']
                 output = run_cli_command(check_args)
-                creds = json.loads(output)
-                if creds and isinstance(creds, list) and len(creds) > 0:
-                    found_id = creds[0].get('id')
+                cred = json.loads(output)
+                if cred and isinstance(cred, dict) and cred.get('id'):
+                    found_id = cred['id']
             # 2. Create or update (CLI may not support create, so only update if found)
             if found_id:
                 args = cli_base + ['update', '--id', str(found_id)]
@@ -169,18 +191,47 @@ def run_module():
                     value = module.params.get(param)
                     if value is not None:
                         args += [f'--{param}', str(value)]
-                args += ['--verbose', '--output', 'json']
+                args += ['--format', 'json']
                 run_cli_command(args)
             else:
                 module.fail_json(msg="Credential type not found for update. Use the UI or API to create new credential types.")
             # 3. Always read the record and return as result
             if found_id:
-                read_args = cli_base + ['get', '--id', str(found_id), '--verbose', '--output', 'json']
+                read_args = cli_base + ['get', '--id', str(found_id), '--format', 'json']
             elif module.params.get('name'):
-                read_args = cli_base + ['get', '--name', module.params['name'], '--verbose', '--output', 'json']
+                read_args = cli_base + ['get', '--name', module.params['name'], '--format', 'json']
             else:
-                read_args = cli_base + ['list', '--verbose', '--output', 'json']
+                read_args = cli_base + ['list', '--format', 'json']
             output = run_cli_command(read_args)
+            result['credential_type'] = json.loads(output)
+            module.exit_json(**result)
+        elif state == 'import':
+            if not module.params.get('file'):
+                module.fail_json(msg="file parameter is required for import operation")
+            args = cli_base + ['import-json', '--file', module.params['file'], '--format', 'json']
+            output = run_cli_command(args)
+            result['credential_type'] = json.loads(output)
+            result['changed'] = True
+            module.exit_json(**result)
+        elif state == 'export':
+            if not module.params.get('file'):
+                module.fail_json(msg="file parameter is required for export operation")
+            if not (module.params.get('credential_type_id') or module.params.get('name')):
+                module.fail_json(msg="credential_type_id or name is required for export operation")
+            args = cli_base + ['export-json', '--file', module.params['file'], '--format', 'json']
+            if module.params.get('credential_type_id'):
+                args += ['--id', str(module.params['credential_type_id'])]
+            elif module.params.get('name'):
+                args += ['--name', module.params['name']]
+            output = run_cli_command(args)
+            result['credential_type'] = json.loads(output)
+            result['changed'] = True
+            module.exit_json(**result)
+        elif state == 'validate':
+            if not module.params.get('file'):
+                module.fail_json(msg="file parameter is required for validate operation")
+            args = cli_base + ['validate-json', '--file', module.params['file'], '--format', 'json']
+            output = run_cli_command(args)
             result['credential_type'] = json.loads(output)
             module.exit_json(**result)
         else:

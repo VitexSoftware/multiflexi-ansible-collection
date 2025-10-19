@@ -156,6 +156,8 @@ def run_module():
         DatCreate=dict(type='str', required=False),
         DatUpdate=dict(type='str', required=False),
         email=dict(type='str', required=False),
+        fields=dict(type='str', required=False),
+        zabbix_host=dict(type='str', required=False),
         state=dict(type='str', required=False, default='present', choices=['present', 'absent', 'get'])
     )
 
@@ -206,7 +208,7 @@ def run_module():
             update_fields = {}
             # Always include slug for create/update
             update_fields['slug'] = module.params.get('slug')
-            for param in ['name', 'customer', 'enabled', 'settings', 'logo', 'ic', 'DatCreate', 'DatUpdate', 'email']:
+            for param in ['name', 'customer', 'enabled', 'settings', 'logo', 'ic', 'DatCreate', 'DatUpdate', 'email', 'zabbix_host']:
                 desired = module.params.get(param)
                 if desired is not None:
                     if not existing or str(existing.get(param)) != str(int(desired)) if isinstance(desired, bool) else str(desired):

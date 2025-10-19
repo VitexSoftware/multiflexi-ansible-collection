@@ -78,7 +78,7 @@ topic:
 
 def run_cli(module, args):
     cli = module.params.get('multiflexi_cli', 'multiflexi-cli')
-    cmd = [cli] + args + ['--verbose', '--output', 'json']
+    cmd = [cli] + args + ['--verbose', '--format', 'json']
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
