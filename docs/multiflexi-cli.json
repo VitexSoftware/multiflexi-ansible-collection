@@ -610,8 +610,8 @@
                 "description": "Homepage URL",
                 "default": null
             },
-            "json": {
-                "name": "json",
+            "file": {
+                "name": "file",
                 "shortcut": null,
                 "is_value_required": true,
                 "description": "Path to JSON file for import\/export\/remove\/validate",
@@ -626,13 +626,61 @@
             }
         }
     },
+    "artifact": {
+        "description": "Manage job artifacts",
+        "arguments": {
+            "action": {
+                "name": "action",
+                "is_required": true,
+                "description": "Action: list|get|save",
+                "default": null
+            }
+        },
+        "options": {
+            "format": {
+                "name": "format",
+                "shortcut": "f",
+                "is_value_required": false,
+                "description": "The output format: text or json. Defaults to text.",
+                "default": "text"
+            },
+            "id": {
+                "name": "id",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Artifact ID",
+                "default": null
+            },
+            "job_id": {
+                "name": "job_id",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Job ID to filter artifacts",
+                "default": null
+            },
+            "file": {
+                "name": "file",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "File path to save artifact content to",
+                "default": null
+            },
+            "fields": {
+                "name": "fields",
+                "shortcut": null,
+                "is_value_required": false,
+                "description": "Comma-separated list of fields to display",
+                "default": null
+            }
+        }
+    },
     "credtype": {
         "description": "Credential type operations",
         "arguments": {
             "action": {
                 "name": "action",
                 "is_required": true,
-                "description": "Action: list|get|update",
+                "description": "Action: list|get|update|import|import-json|export-json|remove-json|validate-json",
                 "default": null
             }
         },
@@ -656,6 +704,13 @@
                 "shortcut": null,
                 "is_value_required": true,
                 "description": "Name",
+                "default": null
+            },
+            "file": {
+                "name": "file",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Path to JSON file for import\/export\/remove\/validate",
                 "default": null
             },
             "format": {

@@ -2,16 +2,27 @@
 
 This repository contains the `vitexsus.multiflexi` Ansible Collection.
 
-install the `python3-mysql.connector` package on multifleix machine before use
-
 ## External requirements
 
 Some modules and plugins require external libraries. Please check the requirements for each plugin or module you use in the documentation to find out which requirements are needed.
 
 ## Included content
 
-* multiflexi_server role install multiflexi server on your debian or ubuntu server
-* multiflexi.company ansible module create or remove company in multiflexi for you
+### Roles
+* **multiflexi_server** - Install MultiFlexi server on your Debian or Ubuntu server
+
+### Modules
+* **company** - Create, update or remove companies in MultiFlexi
+* **user** - Manage users in MultiFlexi
+* **application** - Manage applications in MultiFlexi
+* **runtemplate** - Manage run templates in MultiFlexi
+* **job** - Manage jobs in MultiFlexi
+* **artifact** - Manage job artifacts in MultiFlexi (list, get, save to file)
+* **companyapp** - Manage company-application relations
+* **credential** - Manage credentials in MultiFlexi
+* **credential_type** - Manage credential types in MultiFlexi
+* **topic** - Manage topics in MultiFlexi
+* **multiflexi_info** - Gather MultiFlexi system information
 
 ## Using this collection
 

@@ -1,0 +1,63 @@
+---
+- name: MultiFlexi Artifact Management Example
+  hosts: localhost
+  gather_facts: false
+  
+  tasks:
+    - name: List all job artifacts
+      vitexsus.multiflexi.artifact:
+        state: list
+      register: all_artifacts
+
+    - name: Display all artifacts
+      debug:
+        var: all_artifacts.artifact
+
+    - name: List artifacts for specific job (example job ID 123)
+      vitexsus.multiflexi.artifact:
+        state: list
+        job_id: 123
+      register: job_artifacts
+      ignore_errors: yes
+
+    - name: Display job-specific artifacts
+      debug:
+        var: job_artifacts.artifact
+      when: job_artifacts is succeeded
+
+    - name: Get specific artifact by ID (example artifact ID 1)
+      vitexsus.multiflexi.artifact:
+        state: get
+        id: 1
+      register: specific_artifact
+      ignore_errors: yes
+
+    - name: Display specific artifact details
+      debug:
+        var: specific_artifact.artifact
+      when: specific_artifact is succeeded
+
+    - name: Save artifact to file (example: save artifact ID 1 to /tmp/artifact_1.txt)
+      vitexsus.multiflexi.artifact:
+        state: save
+        id: 1
+        file_path: "/tmp/artifact_1.txt"
+      register: saved_artifact
+      ignore_errors: yes
+
+    - name: Display save results
+      debug:
+        msg: "Artifact saved to {{ saved_artifact.saved_to }}"
+      when: saved_artifact is succeeded and saved_artifact.changed
+
+    - name: List artifacts with specific fields only
+      vitexsus.multiflexi.artifact:
+        state: list
+        fields: "id,job_id,filename"
+      register: filtered_artifacts
+      ignore_errors: yes
+
+    - name: Display filtered artifacts
+      debug:
+        var: filtered_artifacts.artifact
+      when: filtered_artifacts is succeeded
