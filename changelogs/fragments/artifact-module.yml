@@ -1,0 +1,6 @@
+minor_changes:
+  - "artifact - Add new artifact module for managing job artifacts (list, get, save to file)"
+
+new_modules:
+  - name: artifact
+    description: Manage job artifacts in MultiFlexi - allows listing artifacts, getting specific artifacts, and saving artifact content to files
