@@ -1,12 +1,51 @@
 # Collections Plugins Directory
 
-This directory can be used to ship various plugins inside an Ansible collection. Each plugin is placed in a folder that
-is named after the type of plugin it is in. It can also include the `module_utils` and `modules` directory that
-would contain module utils and modules respectively.
+This directory contains various plugins for the MultiFlexi Ansible collection. Each plugin is placed in a folder that
+is named after the type of plugin it is in.
 
-Here is an example directory of the majority of plugins currently supported by Ansible:
+## MultiFlexi Modules
 
-```
+The `modules` directory contains comprehensive modules for managing MultiFlexi instances:
+
+### Core Entity Management
+
+- **application**: Manage applications (create, update, delete, import/export JSON, validate)
+- **company**: Manage companies and their settings
+- **user**: Manage users and their accounts
+- **job**: Manage job execution and scheduling
+- **runtemplate**: Manage run templates for automated execution
+
+### Credential and Security Management
+
+- **credential**: Manage credential instances
+- **credential_type**: Manage credential types (with JSON import/export/validation)
+- **token**: Manage authentication tokens (create, generate, update)
+- **encryption**: Manage encryption keys and status
+- **user_data_erasure**: Handle GDPR user data erasure requests
+
+### System Operations
+
+- **multiflexi_status**: Get comprehensive system status
+- **queue**: Manage job queues (list, truncate)
+- **prune**: Prune logs and jobs to maintain performance
+- **artifact**: Manage job artifacts and outputs
+- **companyapp**: Manage company-application relationships
+
+### Key Features
+
+- **JSON Operations**: Many modules support JSON import/export for bulk operations
+- **Schema Validation**: Automatic validation against MultiFlexi schemas
+- **CLI Integration**: All modules use the `multiflexi-cli` command-line tool
+- **Check Mode Support**: Dry-run support for safe operations
+- **Comprehensive Error Handling**: Detailed error reporting and validation
+
+All modules follow Ansible best practices and provide consistent interfaces for managing MultiFlexi infrastructure.
+
+## Plugin Directory Structure
+
+Here is the directory structure for the plugins:
+
+```text
 └── plugins
     ├── action
     ├── become
@@ -19,7 +58,7 @@ Here is an example directory of the majority of plugins currently supported by A
     ├── inventory
     ├── lookup
     ├── module_utils
-    ├── modules
+    ├── modules           # MultiFlexi management modules
     ├── netconf
     ├── shell
     ├── strategy
