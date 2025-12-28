@@ -91,7 +91,7 @@ The collection uses:
 
 ### Required External Dependencies
 - `python3-mysql.connector` package must be installed on target MultiFlexi machines
-- `multiflexi-cli` tool must be available on managed systems
+- `multiflexi-cli` tool version 2.2.0 or newer must be available on managed systems
 
 ### CI/CD
 - GitHub Actions run on all PRs

@@ -1,12 +1,14 @@
-Role Name
-=========
+MultiFlexi Server Role
+======================
 
-A brief description of the role goes here.
+Installs and configures MultiFlexi server on Debian/Ubuntu systems.
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- **multiflexi-cli version 2.2.0 or newer** must be available on managed systems
+- Apache web server (installed by role)
+- Database server (MySQL, PostgreSQL, or SQLite)
 
 Role Variables
 --------------

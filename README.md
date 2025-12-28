@@ -6,6 +6,10 @@ This repository contains the `vitexsus.multiflexi` Ansible Collection.
 
 Some modules and plugins require external libraries. Please check the requirements for each plugin or module you use in the documentation to find out which requirements are needed.
 
+### MultiFlexi CLI Requirements
+
+This collection requires **multiflexi-cli version 2.2.0 or newer** to be installed on the target systems.
+
 ## Included content
 
 ### Roles
