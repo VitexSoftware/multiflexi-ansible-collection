@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-This is the `vitexsus.multiflexi` Ansible Collection - an Ansible collection for managing MultiFlexi servers and their components. MultiFlexi is a business application platform that manages ERP/accounting systems, primarily targeting Czech/European markets.
+This is the `vitexus.multiflexi` Ansible Collection - an Ansible collection for managing MultiFlexi servers and their components. MultiFlexi is a business application platform that manages ERP/accounting systems, primarily targeting Czech/European markets.
 
 ## Architecture
 
@@ -37,7 +37,7 @@ All modules follow this idempotent pattern:
 ansible-galaxy collection build
 
 # Install locally
-ansible-galaxy collection install vitexsus-multiflexi-*.tar.gz --force
+ansible-galaxy collection install vitexus-multiflexi-*.tar.gz --force
 
 # Install from requirements
 ansible-galaxy collection install -r requirements.yml
@@ -99,7 +99,7 @@ The collection uses:
 - Workflows include: changelog validation, ansible-lint, sanity tests, unit tests
 
 ### Collection Metadata
-- Namespace: `vitexsus`
+- Namespace: `vitexus`
 - Name: `multiflexi` 
 - Minimum Ansible: 2.15.0
 - Supported platforms: Debian 10-12, Ubuntu 20.04-24.04

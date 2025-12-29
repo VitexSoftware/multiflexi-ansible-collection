@@ -1,4 +1,4 @@
-"""Unit tests for vitexsus.multiflexi."""
+"""Unit tests for vitexus.multiflexi."""
 
 
 def test_basic() -> None:

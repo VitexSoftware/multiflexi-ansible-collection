@@ -1,6 +1,6 @@
 # Vitexsoftware Multiflexi Collection
 
-This repository contains the `vitexsus.multiflexi` Ansible Collection.
+This repository contains the `vitexus.multiflexi` Ansible Collection.
 
 ## External requirements
 
@@ -36,26 +36,26 @@ This collection requires **multiflexi-cli version 2.2.0 or newer** to be install
 ## Using this collection
 
 ```bash
-    ansible-galaxy collection install vitexsus.multiflexi
+    ansible-galaxy collection install vitexus.multiflexi
 ```
 
 You can also include it in a `requirements.yml` file and install it via `ansible-galaxy collection install -r requirements.yml` using the format:
 
 ```yaml
 collections:
-  - name: vitexsus.multiflexi
+  - name: vitexus.multiflexi
 ```
 
 To upgrade the collection to the latest available version, run the following command:
 
 ```bash
-ansible-galaxy collection install vitexsus.multiflexi --upgrade
+ansible-galaxy collection install vitexus.multiflexi --upgrade
 ```
 
 You can also install a specific version of the collection, for example, if you need to downgrade when something is broken in the latest version (please report an issue in this repository). Use the following syntax where `X.Y.Z` can be any [available version](https://galaxy.ansible.com/vitexsoftware/multiflexi):
 
 ```bash
-ansible-galaxy collection install vitexsus.multiflexi:==X.Y.Z
+ansible-galaxy collection install vitexus.multiflexi:==X.Y.Z
 ```
 
 See [Ansible Using collections](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html) for more details.
