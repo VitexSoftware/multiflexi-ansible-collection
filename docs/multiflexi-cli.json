@@ -180,6 +180,20 @@
                 "is_value_required": true,
                 "description": "App ID",
                 "default": null
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "default": null
             }
         }
     },
@@ -278,18 +292,25 @@
                 "description": "Company Slug",
                 "default": null
             },
-            "fields": {
-                "name": "fields",
-                "shortcut": null,
-                "is_value_required": false,
-                "description": "Comma-separated list of fields to display",
-                "default": null
-            },
             "zabbix_host": {
                 "name": "zabbix_host",
                 "shortcut": null,
                 "is_value_required": false,
                 "description": "Zabbix Host",
+                "default": null
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
                 "default": null
             }
         }
@@ -340,11 +361,115 @@
                 "description": "Credential Type ID",
                 "default": null
             },
-            "fields": {
-                "name": "fields",
+            "limit": {
+                "name": "limit",
                 "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "default": null
+            }
+        }
+    },
+    "crprototype": {
+        "description": "Credential prototype operations",
+        "arguments": {
+            "action": {
+                "name": "action",
+                "is_required": true,
+                "description": "Action: list|get|create|update|delete|import-json|export-json|validate-json|sync",
+                "default": null
+            }
+        },
+        "options": {
+            "id": {
+                "name": "id",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Credential Prototype ID",
+                "default": null
+            },
+            "uuid": {
+                "name": "uuid",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Credential Prototype UUID",
+                "default": null
+            },
+            "code": {
+                "name": "code",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Credential Prototype Code",
+                "default": null
+            },
+            "name": {
+                "name": "name",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Name",
+                "default": null
+            },
+            "description": {
+                "name": "description",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Description",
+                "default": null
+            },
+            "prototype-version": {
+                "name": "prototype-version",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Version",
+                "default": null
+            },
+            "logo": {
+                "name": "logo",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Logo URL",
+                "default": null
+            },
+            "url": {
+                "name": "url",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Homepage URL",
+                "default": null
+            },
+            "file": {
+                "name": "file",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Path to JSON file for import\/export\/validate",
+                "default": null
+            },
+            "format": {
+                "name": "format",
+                "shortcut": "f",
                 "is_value_required": false,
-                "description": "Comma-separated list of fields to display",
+                "description": "The output format: text or json. Defaults to text.",
+                "default": "text"
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
                 "default": null
             }
         }
@@ -386,6 +511,20 @@
                 "shortcut": null,
                 "is_value_required": true,
                 "description": "Token value",
+                "default": null
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
                 "default": null
             }
         }
@@ -492,18 +631,25 @@
                 "description": "Executor to use for launch",
                 "default": "Native"
             },
-            "env": {
-                "name": "env",
-                "shortcut": null,
-                "is_value_required": true,
-                "description": "Environment override key=value (repeatable)",
-                "default": []
-            },
             "fields": {
                 "name": "fields",
                 "shortcut": null,
                 "is_value_required": false,
                 "description": "Comma-separated list of fields to display",
+                "default": null
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
                 "default": null
             }
         }
@@ -580,6 +726,20 @@
                 "shortcut": null,
                 "is_value_required": false,
                 "description": "Enabled (true\/false)",
+                "default": null
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
                 "default": null
             }
         }
@@ -678,6 +838,20 @@
                 "is_value_required": false,
                 "description": "Application Version",
                 "default": null
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "default": null
             }
         }
     },
@@ -720,11 +894,18 @@
                 "description": "File path to save artifact content to",
                 "default": null
             },
-            "fields": {
-                "name": "fields",
+            "limit": {
+                "name": "limit",
                 "shortcut": null,
-                "is_value_required": false,
-                "description": "Comma-separated list of fields to display",
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
                 "default": null
             }
         }
@@ -774,11 +955,45 @@
                 "is_value_required": false,
                 "description": "The output format: text or json. Defaults to text.",
                 "default": "text"
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "default": null
             }
         }
     },
-    "appstatus": {
-        "description": "Prints App Status",
+    "encryption": {
+        "description": "Manage encryption keys",
+        "arguments": {
+            "action": {
+                "name": "action",
+                "is_required": true,
+                "description": "Action: status, init",
+                "default": null
+            }
+        },
+        "options": {
+            "format": {
+                "name": "format",
+                "shortcut": "f",
+                "is_value_required": false,
+                "description": "The output format: text or json. Defaults to text.",
+                "default": "text"
+            }
+        }
+    },
+    "status": {
+        "description": "Prints MultiFlexi Status",
         "arguments": [],
         "options": {
             "format": {
@@ -855,6 +1070,20 @@
                 "is_value_required": false,
                 "description": "The output format: text or json. Defaults to text.",
                 "default": "text"
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "default": null
             }
         }
     },
