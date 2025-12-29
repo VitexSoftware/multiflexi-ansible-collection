@@ -27,6 +27,11 @@ This collection requires **multiflexi-cli version 2.2.0 or newer** to be install
 * **credential_type** - Manage credential types in MultiFlexi
 * **topic** - Manage topics in MultiFlexi
 * **multiflexi_info** - Gather MultiFlexi system information
+* **multiflexi_status** - Get MultiFlexi system status
+* **user_data_erasure** - Manage GDPR user data erasure requests
+* **token** - Manage authentication tokens
+* **prune** - Prune logs and jobs
+* **queue** - Manage queues
 
 ## Using this collection
 

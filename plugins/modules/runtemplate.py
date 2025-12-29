@@ -63,19 +63,24 @@ options:
             - Interval specification.
         required: false
         type: str
-    prepared:
+    cron:
         description:
-            - Whether the run template is prepared.
-        required: false
-        type: bool
-    success:
-        description:
-            - Success action.
+            - Crontab expression.
         required: false
         type: str
-    fail:
+    config:
         description:
-            - Fail action.
+            - Application configuration (dictionary).
+        required: false
+        type: dict
+    executor:
+        description:
+            - Executor to use.
+        required: false
+        type: str
+    schedule_time:
+        description:
+            - Schedule time for launch (Y-m-d H:i:s or "now").
         required: false
         type: str
 """
@@ -188,9 +193,10 @@ def run_module():
         company=dict(type='str', required=False),  # <-- new option
         active=dict(type='bool', required=False),
         interv=dict(type='str', required=False),
-        prepared=dict(type='bool', required=False),
-        success=dict(type='str', required=False),
-        fail=dict(type='str', required=False),
+        cron=dict(type='str', required=False),
+        config=dict(type='dict', required=False),
+        executor=dict(type='str', required=False),
+        schedule_time=dict(type='str', required=False),
     )
 
     result = dict(
@@ -219,10 +225,16 @@ def run_module():
         if tpl:
             # Update
             update_args = ['runtemplate', 'update', '--id', str(tpl['id'])]
-            for field in ['name', 'company_id', 'company', 'active', 'interv', 'prepared', 'success', 'fail']:
+            for field in ['name', 'company_id', 'company', 'active', 'interv', 'cron', 'executor', 'schedule_time']:
                 val = module.params.get(field)
                 if val is not None:
                     update_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
+            
+            # Handle config dictionary
+            if module.params.get('config'):
+                for k, v in module.params['config'].items():
+                    update_args += ['--config', f'{k}={v}']
+
             # Prefer app_uuid over app_id if provided
             if module.params.get('app_uuid'):
                 update_args += ['--app_uuid', module.params['app_uuid']]
@@ -240,10 +252,16 @@ def run_module():
         else:
             # Create
             create_args = ['runtemplate', 'create']
-            for field in ['name', 'company_id', 'company', 'active', 'interv', 'prepared', 'success', 'fail']:
+            for field in ['name', 'company_id', 'company', 'active', 'interv', 'cron', 'executor', 'schedule_time']:
                 val = module.params.get(field)
                 if val is not None:
                     create_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
+
+            # Handle config dictionary
+            if module.params.get('config'):
+                for k, v in module.params['config'].items():
+                    create_args += ['--config', f'{k}={v}']
+
             # Prefer app_uuid over app_id if provided
             if module.params.get('app_uuid'):
                 create_args += ['--app_uuid', module.params['app_uuid']]
