@@ -1,4 +1,4 @@
-vitexsus.multiflexi Run Role
+vitexus.multiflexi Run Role
 ========================
 
 A brief description of the role goes here.
@@ -27,20 +27,20 @@ Including an example of how to use your role (for instance, with variables passe
 - name: Execute tasks on servers
   hosts: servers
   roles:
-    - role: vitexsus.multiflexi.run
+    - role: vitexus.multiflexi.run
       run_x: 42
 ```
 
 Another way to consume this role would be:
 
 ```yaml
-- name: Initialize the run role from vitexsus.multiflexi
+- name: Initialize the run role from vitexus.multiflexi
   hosts: servers
   gather_facts: false
   tasks:
     - name: Trigger invocation of run role
       ansible.builtin.include_role:
-        name: vitexsus.multiflexi.run
+        name: vitexus.multiflexi.run
       vars:
         run_x: 42
 ```

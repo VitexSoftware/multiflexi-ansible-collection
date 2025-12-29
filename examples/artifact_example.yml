@@ -5,7 +5,7 @@
   
   tasks:
     - name: List all job artifacts
-      vitexsus.multiflexi.artifact:
+      vitexus.multiflexi.artifact:
         state: list
       register: all_artifacts
 
@@ -14,7 +14,7 @@
         var: all_artifacts.artifact
 
     - name: List artifacts for specific job (example job ID 123)
-      vitexsus.multiflexi.artifact:
+      vitexus.multiflexi.artifact:
         state: list
         job_id: 123
       register: job_artifacts
@@ -26,7 +26,7 @@
       when: job_artifacts is succeeded
 
     - name: Get specific artifact by ID (example artifact ID 1)
-      vitexsus.multiflexi.artifact:
+      vitexus.multiflexi.artifact:
         state: get
         id: 1
       register: specific_artifact
@@ -38,7 +38,7 @@
       when: specific_artifact is succeeded
 
     - name: Save artifact to file (example: save artifact ID 1 to /tmp/artifact_1.txt)
-      vitexsus.multiflexi.artifact:
+      vitexus.multiflexi.artifact:
         state: save
         id: 1
         file_path: "/tmp/artifact_1.txt"
@@ -51,7 +51,7 @@
       when: saved_artifact is succeeded and saved_artifact.changed
 
     - name: List artifacts with specific fields only
-      vitexsus.multiflexi.artifact:
+      vitexus.multiflexi.artifact:
         state: list
         fields: "id,job_id,filename"
       register: filtered_artifacts
