@@ -1,0 +1,25 @@
+---
+- name: Ensure MultiFlexi Zabbix package is installed
+  ansible.builtin.apt:
+    name: 'multiflexi-zabbix'
+    state: present
+  become: true
+  tags: ['multiflexi', 'zabbix']
+
+- name: Configure Zabbix
+  community.general.ini_file:
+    path: "/etc/multiflexi/multiflexi.env"
+    section: zabbix
+    option: ZABBIX_SERVER
+    value: "{{ multiflexi_server_zabbix_server | default('zabbix.' + ansible_fqdn) }}"
+    state: present
+    mode: "0640"
+
+- name: Set ZABBIX_HOST in MultiFlexi config
+  community.general.ini_file:
+    path: "/etc/multiflexi/multiflexi.env"
+    section: zabbix
+    option: ZABBIX_HOST
+    value: "{{ multiflexi_server_zabbix_host | default(ansible_fqdn) }}"
+    state: present
+    mode: "0640"

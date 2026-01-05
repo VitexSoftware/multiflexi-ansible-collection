@@ -7,7 +7,13 @@ multiflexi_server_database_engines:
   # - mssql
 
 multiflexi_server_db_type: sqlite  # default database type, can be overridden in playbook or inventory
+# Optional alias for database type that playbooks may use
+multiflexi_server_database_type: null
 multiflexi_server_webserver_type: apache  # default web server type, can be overridden in playbook or inventory
+
+# Optional Zabbix integration variables
+multiflexi_server_zabbix_host: null
+multiflexi_server_zabbix_server: null
 
 # Repository configuration
 multiflexi_repository_channel: testing

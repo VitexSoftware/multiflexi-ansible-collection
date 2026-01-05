@@ -3,7 +3,7 @@
 - name: Include MySQL tasks
   ansible.builtin.include_tasks:
     file: mysql.yml
-  when: multiflexi_server_db_type == 'mysql'
+  when: (multiflexi_server_database_type | default(multiflexi_server_db_type)) == 'mysql'
   tags: ['multiflexi', 'mysql']
 
 
