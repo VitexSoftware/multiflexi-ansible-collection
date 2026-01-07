@@ -3,7 +3,104 @@
 - name: Include MySQL tasks
   ansible.builtin.include_tasks:
     file: mysql.yml
-  when: (multiflexi_server_database_type | default(multiflexi_server_db_type)) == 'mysql'
+  when: multiflexi_server_database_type == 'mysql'
+  tags: ['multiflexi', 'mysql']
+
+
+- name: Ensure MultiFlexi config directory exists
+  ansible.builtin.file:
+    path: "/etc/multiflexi"
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0750"
+  become: true
+
+- name: Check for dbconfig-common configuration
+  ansible.builtin.stat:
+    path: "/etc/dbconfig-common/multiflexi.conf"
+  register: dbconf_stat
+
+- name: Read dbconfig-common configuration
+  ansible.builtin.slurp:
+    path: "/etc/dbconfig-common/multiflexi.conf"
+  register: dbconf_file
+  when: dbconf_stat.stat.exists
+
+- name: Source dbconfig-common and capture variables (safe, read-only)
+  ansible.builtin.shell: |
+    set -e
+    . /etc/dbconfig-common/multiflexi.conf
+    printf '%s\n' "${dbc_dbtype}|${dbc_dbserver}|${dbc_dbport}|${dbc_dbname}|${dbc_dbuser}|${dbc_dbpass}"
+  args:
+    executable: /bin/bash
+  changed_when: false
+  register: dbconf_vars
+  when: dbconf_stat.stat.exists
+
+- name: Map dbconfig-common variables
+  ansible.builtin.set_fact:
+    dbconf_dbtype: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[0] }}"
+    dbconf_dbserver: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[1] }}"
+    dbconf_dbport: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[2] }}"
+    dbconf_dbname: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[3] }}"
+    dbconf_dbuser: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[4] }}"
+    dbconf_dbpass: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[5] }}"
+  when: dbconf_stat.stat.exists
+
+- name: Compute effective database settings
+  ansible.builtin.set_fact:
+    multiflexi_db_host_effective: "{{ multiflexi_db_host | default(dbconf_dbserver | default('localhost'), true) }}"
+    multiflexi_db_port_effective: "{{ multiflexi_db_port | default(dbconf_dbport | default('3306'), true) }}"
+    multiflexi_db_name_effective: "{{ multiflexi_db_name | default(dbconf_dbname | default('multiflexi'), true) }}"
+    multiflexi_db_user_effective: "{{ multiflexi_db_user | default(dbconf_dbuser | default('multiflexi'), true) }}"
+    multiflexi_db_password_effective: "{{ multiflexi_db_password | default(dbconf_dbpass | default(''), true) }}"
+
+- name: Set database type in MultiFlexi config
+  community.general.ini_file:
+    path: "/etc/multiflexi/multiflexi.env"
+    section: database
+    option: DB_TYPE
+    value: "{{ multiflexi_server_database_type }}"
+    state: present
+    mode: "0640"
+    owner: root
+    group: www-data
+  become: true
+
+- name: Configure database connection settings
+  community.general.ini_file:
+    path: "/etc/multiflexi/multiflexi.env"
+    section: database
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+    mode: "0640"
+    owner: root
+    group: www-data
+  become: true
+  loop:
+    - { option: "DB_HOST", value: "{{ multiflexi_db_host_effective }}" }
+    - { option: "DB_PORT", value: "{{ multiflexi_db_port_effective }}" }
+    - { option: "DB_NAME", value: "{{ multiflexi_db_name_effective }}" }
+    - { option: "DB_USER", value: "{{ multiflexi_db_user_effective }}" }
+  when: multiflexi_server_database_type == 'mysql'
+  tags: ['multiflexi', 'mysql']
+
+- name: Configure database password if provided
+  community.general.ini_file:
+    path: "/etc/multiflexi/multiflexi.env"
+    section: database
+    option: DB_PASSWORD
+    value: "{{ multiflexi_db_password_effective }}"
+    state: present
+    mode: "0640"
+    owner: root
+    group: www-data
+  become: true
+  when:
+    - multiflexi_server_database_type == 'mysql'
+    - (multiflexi_db_password_effective | default('', true)) | length > 0
   tags: ['multiflexi', 'mysql']
 
 

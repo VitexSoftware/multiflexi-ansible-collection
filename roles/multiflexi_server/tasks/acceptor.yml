@@ -1,9 +1,9 @@
 ---
 - name: Install MultiFlexi multi package
   ansible.builtin.apt:
-    name: "abraflexi-webhook-acceptor-{{ (multiflexi_server_database_type | default(multiflexi_server_db_type | default('sqlite'))) }}"
+    name: "abraflexi-webhook-acceptor-{{ multiflexi_server_database_type }}"
     state: present
-  when: (multiflexi_server_database_type | default(multiflexi_server_db_type)) in multiflexi_server_database_engines
+  when: multiflexi_server_database_type in multiflexi_server_database_engines
   tags: ['multiflexi']
 
 - name: Enable abraflexi-webhook-acceptor

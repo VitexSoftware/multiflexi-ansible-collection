@@ -6,10 +6,9 @@
 
 - name: Install MultiFlexi multi package
   ansible.builtin.apt:
-    name: "multiflexi-{{ (multiflexi_server_database_type | default(multiflexi_server_db_type | default('sqlite'))) }}"
+    name: "multiflexi-{{ multiflexi_server_database_type }}"
     state: present
   become: true
-  when: (multiflexi_server_database_type | default(multiflexi_server_db_type)) in multiflexi_server_database_engines
   tags: ['multiflexi']
 
 - name: Install MultiFlexi Commandline interface
@@ -17,13 +16,12 @@
     name: 'multiflexi-cli'
     state: present
   become: true
-  when: (multiflexi_server_database_type | default(multiflexi_server_db_type)) in multiflexi_server_database_engines
   tags: ['multiflexi', 'cli']
 
-- name: Install MultiFlexi API server
+- name: Install MultiFlexi Web interface
   ansible.builtin.apt:
-    name: 'multiflexi-api'
+    name: 'multiflexi-web'
     state: present
   become: true
-  when: (multiflexi_server_database_type | default(multiflexi_server_db_type)) in multiflexi_server_database_engines
-  tags: ['multiflexi', 'api']
+  when: multiflexi_web_interface | default(true) | bool
+  tags: ['multiflexi', 'web']

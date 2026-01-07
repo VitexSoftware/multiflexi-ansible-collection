@@ -8,6 +8,10 @@
   ansible.builtin.include_tasks:
     file: tasks/webserver.yml
 
+- name: Install MultiFlexi packages
+  ansible.builtin.include_tasks:
+    file: tasks/multiflexi.yml
+
 - name: Configure database
   ansible.builtin.include_tasks:
     file: tasks/database.yml
@@ -18,9 +22,5 @@
 
 - name: Configure MultiFlexi Zabbix integration
   ansible.builtin.include_tasks:
-    file: tasks/multiflexi.yml
+    file: tasks/zabbix.yml
   when: multiflexi_server_zabbix_host
-
-# - name: Install MultiFlexi multi package
-#   ansible.builtin.include_tasks:
-#     file: tasks/multiflexi.yml

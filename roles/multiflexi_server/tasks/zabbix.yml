@@ -14,6 +14,8 @@
     value: "{{ multiflexi_server_zabbix_server | default('zabbix.' + ansible_fqdn) }}"
     state: present
     mode: "0640"
+    owner: root
+    group: www-data
 
 - name: Set ZABBIX_HOST in MultiFlexi config
   community.general.ini_file:
@@ -23,3 +25,5 @@
     value: "{{ multiflexi_server_zabbix_host | default(ansible_fqdn) }}"
     state: present
     mode: "0640"
+    owner: root
+    group: www-data
