@@ -30,13 +30,9 @@ Defaults are defined in `defaults/main.yml`.
   - Default: `[sqlite, pgsql, mysql]`
   - Supported database backends; used for validation/conditions.
 
-- `multiflexi_server_db_type` (string)
+- `multiflexi_server_database_type` (string)
   - Default: `sqlite`
-  - Primary variable controlling which DB-specific package set is installed.
-
-- `multiflexi_server_database_type` (string | alias)
-  - Default: `null`
-  - Optional alias; if set, it takes precedence over `multiflexi_server_db_type` in this role.
+  - Canonical variable controlling which DB-specific package set is installed.
 
 - `multiflexi_server_webserver_type` (string)
   - Default: `apache`
@@ -66,8 +62,7 @@ Behavior Notes
 
 - Database tasks include `mysql.yml` when the effective DB type equals `mysql`.
 - Package tasks use the effective DB type to install `multiflexi-<db>` and related components.
-- Effective DB type resolution:
-  - `multiflexi_server_database_type | default(multiflexi_server_db_type)`
+- Effective DB type is simply `multiflexi_server_database_type`.
 
 Example Playbook
 ----------------

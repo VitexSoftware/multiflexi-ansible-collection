@@ -32,6 +32,8 @@ This collection requires **multiflexi-cli version 2.2.0 or newer** to be install
 * **token** - Manage authentication tokens
 * **prune** - Prune logs and jobs
 * **queue** - Manage queues
+* **eventsource** - Manage event sources (webhook adapter database connections)
+* **eventrule** - Manage event rules (map events to RunTemplates)
 
 ## Using this collection
 

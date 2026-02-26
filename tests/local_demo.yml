@@ -2,6 +2,10 @@
 - name: Manage demo.multiflexi.eu and apply demo role
   hosts: all
   gather_facts: true
+  vars:
+    multiflexi_server_database_type: mysql
+    multiflexi_server_zabbix_host: magnymph.vitexsoftware.com
+    multiflexi_server_zabbix_server: zabbix.spojenet.cz
   roles:
-    # - multiflexi_server
+    - multiflexi_server
     - demo
