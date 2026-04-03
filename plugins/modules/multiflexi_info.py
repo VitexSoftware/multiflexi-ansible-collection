@@ -10,7 +10,7 @@ DOCUMENTATION = """
 module: multiflexi_info
 short_description: Gather MultiFlexi application status facts
 description:
-  - Runs 'multiflexi-cli appstatus --format=json' and returns its output as Ansible facts prefixed with multiflexi_
+  - Runs 'multiflexi-cli status --format=json' and returns its output as Ansible facts prefixed with multiflexi_
 author:
   - Vitex (@Vitexus)
 version_added: "1.0"
@@ -46,7 +46,7 @@ def main():
     module = AnsibleModule(argument_spec={}, supports_check_mode=True)
     try:
         result = subprocess.run(
-            ["multiflexi-cli", "appstatus", "--format=json"],
+            ["multiflexi-cli", "status", "--no-interaction", "--format=json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=True,

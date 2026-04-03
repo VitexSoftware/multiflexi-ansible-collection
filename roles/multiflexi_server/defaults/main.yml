@@ -22,6 +22,9 @@ multiflexi_db_name: multiflexi
 multiflexi_db_user: multiflexi
 multiflexi_db_password: null
 
+# Extra packages to install (e.g. multiflexi-scheduler, multiflexi-executor, multiflexi-eventor)
+multiflexi_extra_packages: []
+
 # Repository configuration
 multiflexi_repository_channel: testing
 multiflexi_repositories:

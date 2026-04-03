@@ -25,3 +25,11 @@
   become: true
   when: multiflexi_web_interface | default(true) | bool
   tags: ['multiflexi', 'web']
+
+- name: Install MultiFlexi extra packages
+  ansible.builtin.apt:
+    name: "{{ multiflexi_extra_packages }}"
+    state: present
+  become: true
+  when: multiflexi_extra_packages | length > 0
+  tags: ['multiflexi', 'extra']
