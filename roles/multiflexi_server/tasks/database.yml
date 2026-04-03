@@ -19,11 +19,13 @@
 - name: Check for dbconfig-common configuration
   ansible.builtin.stat:
     path: "/etc/dbconfig-common/multiflexi.conf"
+  become: true
   register: dbconf_stat
 
 - name: Read dbconfig-common configuration
   ansible.builtin.slurp:
     path: "/etc/dbconfig-common/multiflexi.conf"
+  become: true
   register: dbconf_file
   when: dbconf_stat.stat.exists
 
@@ -34,6 +36,7 @@
     printf '%s\n' "${dbc_dbtype}|${dbc_dbserver}|${dbc_dbport}|${dbc_dbname}|${dbc_dbuser}|${dbc_dbpass}"
   args:
     executable: /bin/bash
+  become: true
   changed_when: false
   register: dbconf_vars
   when: dbconf_stat.stat.exists

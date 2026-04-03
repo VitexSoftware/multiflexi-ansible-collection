@@ -38,6 +38,16 @@ options:
             - Name of the credential type.
         required: false
         type: str
+    class_name:
+        description:
+            - The credential class name (e.g. AbraFlexi) used when creating a new credential type.
+        required: false
+        type: str
+    company_id:
+        description:
+            - The company ID to associate the credential type with when creating.
+        required: false
+        type: int
     file:
         description:
             - Path to JSON file for import/export/validate/remove-json operations.
@@ -66,6 +76,12 @@ EXAMPLES = """
   credential_type:
     state: present
     uuid: "d3d3ae58-d64a-4ab4-afb5-ba439ffc8587"
+
+- name: Create a credential type for a company
+  credential_type:
+    state: present
+    class_name: "AbraFlexi"
+    company_id: 1
 
 - name: Update a credential type
   credential_type:
@@ -102,12 +118,27 @@ credential_type:
     returned: always
 """
 
-def run_cli_command(args):
+def run_cli_command(args, module=None, allow_not_found=False):
+    if module and hasattr(module, '_verbosity') and module._verbosity >= 2:
+        module.warn(f"Running CLI command: {' '.join(args)}")
     try:
         result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, text=True)
+        if module and hasattr(module, '_verbosity') and module._verbosity >= 2:
+            module.warn(f"CLI stdout: {result.stdout.strip()}")
         return result.stdout
     except subprocess.CalledProcessError as e:
-        raise Exception(f"multiflexi-cli error: {e.stderr.strip()}")
+        stdout = e.stdout.strip() if e.stdout else ''
+        stderr = e.stderr.strip() if e.stderr else ''
+        if module and hasattr(module, '_verbosity') and module._verbosity >= 2:
+            module.warn(f"CLI error: {stderr}")
+        if allow_not_found and stdout:
+            try:
+                data = json.loads(stdout)
+                if isinstance(data, dict) and data.get('status') == 'not found':
+                    return stdout
+            except Exception:
+                pass
+        raise Exception(f"multiflexi-cli error: {stderr or stdout or str(e)}")
 
 def run_module():
     module_args = dict(
@@ -115,6 +146,8 @@ def run_module():
         credential_type_id=dict(type='int', required=False),
         uuid=dict(type='str', required=False),
         name=dict(type='str', required=False),
+        class_name=dict(type='str', required=False),
+        company_id=dict(type='int', required=False),
         file=dict(type='str', required=False),
         multiflexi_cli_path=dict(type='str', required=False, default='multiflexi-cli'),
     )
@@ -145,7 +178,7 @@ def run_module():
             # Get credential type by ID, UUID, or name
             if module.params.get('credential_type_id'):
                 args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--format', 'json']
-                output = run_cli_command(args)
+                output = run_cli_command(args, module=module)
                 result['credential_type'] = json.loads(output)
                 result['msg'] = f"Retrieved credential type {module.params['credential_type_id']}"
                 
@@ -153,18 +186,18 @@ def run_module():
                 if module.params.get('name'):
                     args = cli_base + ['update', '--id', str(module.params['credential_type_id']), 
                                      '--name', module.params['name'], '--format', 'json']
-                    output = run_cli_command(args)
+                    output = run_cli_command(args, module=module)
                     result['changed'] = True
                     result['msg'] = f"Updated credential type {module.params['credential_type_id']}"
                     
                     # Get updated credential type
                     args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--format', 'json']
-                    output = run_cli_command(args)
+                    output = run_cli_command(args, module=module)
                     result['credential_type'] = json.loads(output)
                     
             elif module.params.get('uuid'):
                 args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json']
-                output = run_cli_command(args)
+                output = run_cli_command(args, module=module)
                 result['credential_type'] = json.loads(output)
                 result['msg'] = f"Retrieved credential type {module.params['uuid']}"
                 
@@ -172,19 +205,53 @@ def run_module():
                 if module.params.get('name'):
                     args = cli_base + ['update', '--uuid', module.params['uuid'], 
                                      '--name', module.params['name'], '--format', 'json']
-                    output = run_cli_command(args)
+                    output = run_cli_command(args, module=module)
                     result['changed'] = True
                     result['msg'] = f"Updated credential type {module.params['uuid']}"
                     
                     # Get updated credential type
                     args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json']
-                    output = run_cli_command(args)
+                    output = run_cli_command(args, module=module)
                     result['credential_type'] = json.loads(output)
+
+            elif module.params.get('class_name') and module.params.get('company_id'):
+                # Check if a credential type with this class for this company already exists
+                existing = None
+                try:
+                    args = cli_base + ['list', '--format', 'json']
+                    output = run_cli_command(args, module=module)
+                    credtypes = json.loads(output)
+                    if isinstance(credtypes, list):
+                        for ct in credtypes:
+                            if (str(ct.get('company_id', '')) == str(module.params['company_id']) and
+                                ct.get('class', '') == module.params['class_name']):
+                                existing = ct
+                                break
+                except Exception:
+                    pass
+
+                if existing:
+                    result['credential_type'] = existing
+                    result['msg'] = f"Credential type for class {module.params['class_name']} company {module.params['company_id']} already exists"
+                else:
+                    # Create new credential type
+                    if module.check_mode:
+                        result['changed'] = True
+                        result['msg'] = f"Would create credential type for class {module.params['class_name']}"
+                        module.exit_json(**result)
+                    args = cli_base + ['create',
+                                      '--company-id', str(module.params['company_id']),
+                                      '--class', module.params['class_name'],
+                                      '--format', 'json']
+                    output = run_cli_command(args, module=module)
+                    result['credential_type'] = json.loads(output)
+                    result['changed'] = True
+                    result['msg'] = f"Created credential type for class {module.params['class_name']}"
                     
             else:
                 # List all credential types if no specific identifier
                 args = cli_base + ['list', '--format', 'json']
-                output = run_cli_command(args)
+                output = run_cli_command(args, module=module)
                 result['credential_type'] = json.loads(output)
                 result['msg'] = "Retrieved credential type list"
                 

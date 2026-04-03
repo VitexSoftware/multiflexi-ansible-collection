@@ -368,7 +368,23 @@ def run_module():
 
             args = cli_base + ['sync', '--format', 'json']
             output = run_cli_command(args, module=module)
-            result['crprototype'] = json.loads(output)
+            # sync may output log lines before JSON; extract last JSON object/array
+            parsed = None
+            for line in reversed(output.strip().splitlines()):
+                line = line.strip()
+                if line.startswith('{') or line.startswith('['):
+                    try:
+                        parsed = json.loads(line)
+                        break
+                    except json.JSONDecodeError:
+                        continue
+            if parsed is None:
+                # Try parsing the full output as JSON
+                try:
+                    parsed = json.loads(output)
+                except json.JSONDecodeError:
+                    parsed = {'raw_output': output.strip()}
+            result['crprototype'] = parsed
             result['changed'] = True
             result['msg'] = "Synced credential prototypes"
 
