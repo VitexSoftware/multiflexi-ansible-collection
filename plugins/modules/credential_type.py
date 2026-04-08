@@ -53,6 +53,16 @@ options:
             - Path to JSON file for import/export/validate/remove-json operations.
         required: false
         type: str
+    limit:
+        description:
+            - Limit number of results for list action.
+        required: false
+        type: int
+    order:
+        description:
+            - Sort order for list action (A or D).
+        required: false
+        type: str
     multiflexi_cli_path:
         description:
             - Path to the multiflexi-cli executable.
@@ -149,6 +159,8 @@ def run_module():
         class_name=dict(type='str', required=False),
         company_id=dict(type='int', required=False),
         file=dict(type='str', required=False),
+        limit=dict(type='int', required=False),
+        order=dict(type='str', required=False),
         multiflexi_cli_path=dict(type='str', required=False, default='multiflexi-cli'),
     )
 
@@ -170,6 +182,10 @@ def run_module():
     try:
         if state == 'list':
             args = cli_base + ['list', '--format', 'json']
+            if module.params.get('limit'):
+                args.extend(['--limit', str(module.params['limit'])])
+            if module.params.get('order'):
+                args.extend(['--order', module.params['order']])
             output = run_cli_command(args)
             result['credential_type'] = json.loads(output)
             result['msg'] = "Retrieved credential type list"
@@ -251,6 +267,10 @@ def run_module():
             else:
                 # List all credential types if no specific identifier
                 args = cli_base + ['list', '--format', 'json']
+                if module.params.get('limit'):
+                    args.extend(['--limit', str(module.params['limit'])])
+                if module.params.get('order'):
+                    args.extend(['--order', module.params['order']])
                 output = run_cli_command(args, module=module)
                 result['credential_type'] = json.loads(output)
                 result['msg'] = "Retrieved credential type list"

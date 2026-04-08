@@ -21,9 +21,25 @@ options:
     state:
         description:
             - The desired action on the queue.
-        required: true
+        required: false
         type: str
-        choices: ['list', 'truncate']
+        choices: ['list', 'truncate', 'fix', 'overview']
+        default: 'overview'
+    limit:
+        description:
+            - Limit number of results for list action.
+        required: false
+        type: int
+    order:
+        description:
+            - Sort order field.
+        required: false
+        type: str
+    direction:
+        description:
+            - Sort direction.
+        required: false
+        type: str
     multiflexi_cli_path:
         description:
             - Path to the multiflexi-cli executable.
@@ -37,6 +53,10 @@ EXAMPLES = """
 - name: List queue status
   queue:
     state: list
+
+- name: Fix the job queue
+  queue:
+    state: fix
 
 - name: Truncate the job queue
   queue:
@@ -63,7 +83,10 @@ def run_cli_command(args):
 
 def run_module():
     module_args = dict(
-        state=dict(type='str', required=True, choices=['list', 'truncate']),
+        state=dict(type='str', required=False, default='overview', choices=['list', 'truncate', 'fix', 'overview']),
+        limit=dict(type='int', required=False),
+        order=dict(type='str', required=False),
+        direction=dict(type='str', required=False),
         multiflexi_cli_path=dict(type='str', required=False, default='multiflexi-cli'),
     )
 
@@ -83,12 +106,35 @@ def run_module():
     cli_base = [cli_path, 'queue']
 
     try:
-        if state == 'list':
+        if state == 'overview':
+            args = cli_base + ['--format', 'json']
+            output = run_cli_command(args)
+            result['queue'] = json.loads(output)
+            result['msg'] = "Retrieved queue overview"
+            
+        elif state == 'list':
             args = cli_base + ['list', '--format', 'json']
+            if module.params.get('limit'):
+                args.extend(['--limit', str(module.params['limit'])])
+            if module.params.get('order'):
+                args.extend(['--order', module.params['order']])
+            if module.params.get('direction'):
+                args.extend(['--direction', module.params['direction']])
             output = run_cli_command(args)
             result['queue'] = json.loads(output)
             result['msg'] = "Retrieved queue status"
             
+        elif state == 'fix':
+            if module.check_mode:
+                result['msg'] = "Would fix the job queue"
+                result['changed'] = True
+            else:
+                args = cli_base + ['fix', '--format', 'json']
+                output = run_cli_command(args)
+                result['queue'] = json.loads(output)
+                result['changed'] = True
+                result['msg'] = "Fixed job queue"
+
         elif state == 'truncate':
             if module.check_mode:
                 result['msg'] = "Would truncate the job queue"

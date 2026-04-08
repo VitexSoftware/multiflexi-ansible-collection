@@ -629,7 +629,7 @@
                 "shortcut": null,
                 "is_value_required": false,
                 "description": "Executor to use for launch",
-                "default": "Native"
+                "default": null
             },
             "fields": {
                 "name": "fields",
@@ -783,11 +783,11 @@
                 "description": "Description",
                 "default": null
             },
-            "topics": {
-                "name": "topics",
+            "tags": {
+                "name": "tags",
                 "shortcut": null,
                 "is_value_required": true,
-                "description": "Topics",
+                "description": "Tags",
                 "default": null
             },
             "executable": {
@@ -916,7 +916,7 @@
             "action": {
                 "name": "action",
                 "is_required": true,
-                "description": "Action: list|get|update|import|import-json|export-json|remove-json|validate-json",
+                "description": "Action: list|get|create|update|import|import-json|export-json|remove-json|validate-json",
                 "default": null
             }
         },
@@ -940,6 +940,20 @@
                 "shortcut": null,
                 "is_value_required": true,
                 "description": "Name",
+                "default": null
+            },
+            "company-id": {
+                "name": "company-id",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Company ID for credential type creation",
+                "default": null
+            },
+            "class": {
+                "name": "class",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Class name for credential type creation",
                 "default": null
             },
             "file": {
@@ -1050,16 +1064,30 @@
                 "is_value_required": false,
                 "description": "The output format: text or json. Defaults to text.",
                 "default": "text"
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "default": null
             }
         }
     },
     "queue": {
-        "description": "Queue operations (list, truncate)",
+        "description": "Queue operations (list, truncate, fix) - shows metric overview when no action specified",
         "arguments": {
             "action": {
                 "name": "action",
-                "is_required": true,
-                "description": "Action: list|truncate",
+                "is_required": false,
+                "description": "Action: list|truncate|fix (optional - shows overview if omitted)",
                 "default": null
             }
         },
@@ -1082,7 +1110,14 @@
                 "name": "order",
                 "shortcut": null,
                 "is_value_required": true,
-                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "description": "Sort order field: \"after\", \"id\", \"job\", \"schedule_type\", \"runtemplate_id\", \"runtemplate_name\", \"app_id\", \"app_name\", \"company_id\", \"company_name\"",
+                "default": null
+            },
+            "direction": {
+                "name": "direction",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort direction: \"ASC\", \"DESC\", \"A\", \"D\" (default: ASC)",
                 "default": null
             }
         }
@@ -1111,6 +1146,207 @@
                 "is_value_required": false,
                 "description": "Number of records to keep",
                 "default": 1000
+            }
+        }
+    },
+    "eventsource": {
+        "description": "Event source operations",
+        "arguments": {
+            "action": {
+                "name": "action",
+                "is_required": true,
+                "description": "Action: list|get|create|update|remove|test",
+                "default": null
+            }
+        },
+        "options": {
+            "id": {
+                "name": "id",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Event Source ID",
+                "default": null
+            },
+            "name": {
+                "name": "name",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Source name",
+                "default": null
+            },
+            "adapter_type": {
+                "name": "adapter_type",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Adapter type (e.g. abraflexi-webhook-acceptor)",
+                "default": null
+            },
+            "db_connection": {
+                "name": "db_connection",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "DB driver (mysql|pgsql|sqlite)",
+                "default": "mysql"
+            },
+            "db_host": {
+                "name": "db_host",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "DB host",
+                "default": "localhost"
+            },
+            "db_port": {
+                "name": "db_port",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "DB port",
+                "default": "3306"
+            },
+            "db_database": {
+                "name": "db_database",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Database name",
+                "default": null
+            },
+            "db_username": {
+                "name": "db_username",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "DB username",
+                "default": null
+            },
+            "db_password": {
+                "name": "db_password",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "DB password",
+                "default": null
+            },
+            "poll_interval": {
+                "name": "poll_interval",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Poll interval in seconds",
+                "default": "60"
+            },
+            "enabled": {
+                "name": "enabled",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Enabled (1|0)",
+                "default": "1"
+            },
+            "format": {
+                "name": "format",
+                "shortcut": "f",
+                "is_value_required": false,
+                "description": "The output format: text or json. Defaults to text.",
+                "default": "text"
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "default": null
+            }
+        }
+    },
+    "eventrule": {
+        "description": "Event rule operations",
+        "arguments": {
+            "action": {
+                "name": "action",
+                "is_required": true,
+                "description": "Action: list|get|create|update|remove",
+                "default": null
+            }
+        },
+        "options": {
+            "id": {
+                "name": "id",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Event Rule ID",
+                "default": null
+            },
+            "event_source_id": {
+                "name": "event_source_id",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Event Source ID",
+                "default": null
+            },
+            "evidence": {
+                "name": "evidence",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Evidence pattern (e.g. faktura-vydana)",
+                "default": null
+            },
+            "operation": {
+                "name": "operation",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Operation: any|create|update|delete",
+                "default": "any"
+            },
+            "runtemplate_id": {
+                "name": "runtemplate_id",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "RunTemplate ID to trigger",
+                "default": null
+            },
+            "priority": {
+                "name": "priority",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Priority (higher = matched first)",
+                "default": "0"
+            },
+            "enabled": {
+                "name": "enabled",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Enabled (1|0)",
+                "default": "1"
+            },
+            "env_mapping": {
+                "name": "env_mapping",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "JSON env variable mapping",
+                "default": null
+            },
+            "format": {
+                "name": "format",
+                "shortcut": "f",
+                "is_value_required": false,
+                "description": "The output format: text or json. Defaults to text.",
+                "default": "text"
+            },
+            "limit": {
+                "name": "limit",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Limit number of results for list action",
+                "default": null
+            },
+            "order": {
+                "name": "order",
+                "shortcut": null,
+                "is_value_required": true,
+                "description": "Sort order for list action: A (ascending) or D (descending)",
+                "default": null
             }
         }
     }

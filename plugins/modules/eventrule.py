@@ -55,6 +55,12 @@ options:
             - Optional additional condition expression.
         required: false
         type: str
+    priority:
+        description:
+            - Priority (higher = matched first).
+        required: false
+        type: int
+        default: 0
     env_mapping:
         description:
             - JSON string mapping event data fields to environment variables.
@@ -66,6 +72,16 @@ options:
         required: false
         type: bool
         default: true
+    limit:
+        description:
+            - Limit number of results for list action.
+        required: false
+        type: int
+    order:
+        description:
+            - Sort order for list action.
+        required: false
+        type: str
     multiflexi_cli_path:
         description:
             - Path to the multiflexi-cli executable.
@@ -129,8 +145,11 @@ def run_module():
         evidence=dict(type='str', required=False),
         operation=dict(type='str', required=False, choices=['create', 'update', 'delete']),
         condition=dict(type='str', required=False),
+        priority=dict(type='int', required=False, default=0),
         env_mapping=dict(type='str', required=False),
         enabled=dict(type='bool', required=False, default=True),
+        limit=dict(type='int', required=False),
+        order=dict(type='str', required=False),
         multiflexi_cli_path=dict(type='str', required=False, default='multiflexi-cli'),
     )
 
@@ -152,6 +171,10 @@ def run_module():
     try:
         if state == 'list':
             args = cli_base + ['list', '--format', 'json']
+            if module.params.get('limit'):
+                args.extend(['--limit', str(module.params['limit'])])
+            if module.params.get('order'):
+                args.extend(['--order', module.params['order']])
             output = run_cli_command(args)
             result['eventrule'] = json.loads(output)
             result['msg'] = "Retrieved event rule list"
@@ -168,7 +191,7 @@ def run_module():
                 update_args = cli_base + ['update', '--id', str(module.params['eventrule_id'])]
                 has_updates = False
                 for field in ['eventsource_id', 'runtemplate_id', 'evidence', 'operation',
-                              'condition', 'env_mapping']:
+                              'condition', 'env_mapping', 'priority']:
                     if module.params.get(field) is not None:
                         update_args.extend([f'--{field}', str(module.params[field])])
                         has_updates = True
@@ -213,8 +236,8 @@ def run_module():
                         '--enabled', '1' if module.params.get('enabled', True) else '0',
                         '--format', 'json',
                     ]
-                    for field in ['condition', 'env_mapping']:
-                        if module.params.get(field):
+                    for field in ['condition', 'env_mapping', 'priority']:
+                        if module.params.get(field) is not None:
                             create_args.extend([f'--{field}', str(module.params[field])])
 
                     output = run_cli_command(create_args)

@@ -228,7 +228,7 @@ def run_module():
                     if value is not None:
                         args += [f'--{param}', str(value)]
                 if module.params.get('tags'):
-                    args += ['--topics', ','.join(module.params['tags'])]
+                    args += ['--tags', ','.join(module.params['tags'])]
                 args += ['--format', 'json', '--verbose']
                 return args
             if found_app_id:
