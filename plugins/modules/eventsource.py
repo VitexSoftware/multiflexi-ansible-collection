@@ -85,6 +85,16 @@ options:
         required: false
         type: bool
         default: true
+    limit:
+        description:
+            - Limit number of results for list action.
+        required: false
+        type: int
+    order:
+        description:
+            - Sort order for list action.
+        required: false
+        type: str
     multiflexi_cli_path:
         description:
             - Path to the multiflexi-cli executable.
@@ -161,6 +171,8 @@ def run_module():
         db_password=dict(type='str', required=False, no_log=True),
         poll_interval=dict(type='int', required=False, default=60),
         enabled=dict(type='bool', required=False, default=True),
+        limit=dict(type='int', required=False),
+        order=dict(type='str', required=False),
         multiflexi_cli_path=dict(type='str', required=False, default='multiflexi-cli'),
     )
 
@@ -182,6 +194,10 @@ def run_module():
     try:
         if state == 'list':
             args = cli_base + ['list', '--format', 'json']
+            if module.params.get('limit'):
+                args.extend(['--limit', str(module.params['limit'])])
+            if module.params.get('order'):
+                args.extend(['--order', module.params['order']])
             output = run_cli_command(args)
             result['eventsource'] = json.loads(output)
             result['msg'] = "Retrieved event source list"
