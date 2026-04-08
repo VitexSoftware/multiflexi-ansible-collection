@@ -131,7 +131,7 @@ def run_module():
         email=dict(type='str', required=False),
         firstname=dict(type='str', required=False),
         lastname=dict(type='str', required=False),
-        password=dict(type='str', required=False),
+        password=dict(type='str', required=False, no_log=True),
         login=dict(type='str', required=False),
     )
 
