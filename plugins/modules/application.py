@@ -208,9 +208,13 @@ def run_module():
                 if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
                     found_app_id = app['id']
                     app_data = app
-            # Idempotency: Only update if any property differs
+            # Idempotency: Only update if any property differs.
+            # Note: 'file'/'deffile' are intentionally excluded — when the app already exists,
+            # the stored path (from system package install) may differ from the provided dev path.
+            # Passing --file on update re-imports settings but doesn't reliably change the stored path,
+            # so it cannot be used as an idempotency signal.
             needs_update = False
-            for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'tags', 'appversion', 'ociimage', 'requirements', 'file', 'deffile', 'helmchart']:
+            for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'tags', 'appversion', 'ociimage', 'requirements', 'helmchart']:
                 value = module.params.get(param)
                 if value is not None and app_data is not None:
                     app_val = app_data.get(param)
@@ -223,10 +227,14 @@ def run_module():
             # Build args for create/update
             def build_args(base, params):
                 args = base[:]
-                for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'appversion', 'ociimage', 'requirements', 'file', 'deffile', 'helmchart']:
+                # 'deffile' is an alias for 'file' — CLI only accepts --file
+                for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'appversion', 'ociimage', 'requirements', 'helmchart']:
                     value = module.params.get(param)
                     if value is not None:
                         args += [f'--{param}', str(value)]
+                file_value = module.params.get('file') or module.params.get('deffile')
+                if file_value is not None:
+                    args += ['--file', str(file_value)]
                 if module.params.get('tags'):
                     args += ['--tags', ','.join(module.params['tags'])]
                 args += ['--format', 'json', '--verbose']

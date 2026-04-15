@@ -1,10 +1,10 @@
-# WARP.md
+# AGENTS.md
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+This file provides guidance to AI coding agents (Claude Code, Copilot, etc.) when working with code in this repository.
 
 ## Project Overview
 
-This is the `vitexus.multiflexi` Ansible Collection - an Ansible collection for managing MultiFlexi servers and their components. MultiFlexi is a business application platform that manages ERP/accounting systems, primarily targeting Czech/European markets.
+This is the `vitexus.multiflexi` Ansible Collection (v1.3.0) — an Ansible collection for managing MultiFlexi servers and their components. MultiFlexi is a business application platform that manages ERP/accounting systems, primarily targeting Czech/European markets.
 
 ## Architecture
 
@@ -17,10 +17,20 @@ The collection follows standard Ansible collection structure:
 - **Web Server**: Primarily Apache-based installation
 
 ### Key Modules
+- `application.py` - Manage MultiFlexi applications; supports `deffile` as alias for `file` (both map to `--file` CLI arg)
+- `runtemplate.py` - Manage run templates with config key=value pairs; idempotency checks scalar fields and full config dict
 - `company.py` - Manage MultiFlexi companies (create/update/delete)
+- `companyapp.py` - Assign/remove applications from companies
+- `company_info.py` - Gather company facts
 - `multiflexi_info.py` - Gather system facts via `multiflexi-cli appstatus`
-- `user.py`, `application.py`, `job.py`, `topic.py` - Various entity management
+- `multiflexi_status.py` - Report MultiFlexi service status
+- `user.py`, `job.py` - User and job management
 - `credential.py`, `credential_type.py` - Authentication management
+- `crprototype.py` - Credential prototype management
+- `eventrule.py`, `eventsource.py` - Event system management
+- `artifact.py`, `queue.py`, `token.py` - Artifact, queue, and token management
+- `encryption.py` - Encryption key management
+- `prune.py` - Prune old records
 
 ### Module Pattern
 All modules follow this idempotent pattern:
@@ -28,6 +38,12 @@ All modules follow this idempotent pattern:
 2. Only create with `multiflexi-cli <entity> create` if resource doesn't exist
 3. Use `multiflexi-cli <entity> update` if resource exists but differs
 4. Report `changed: false` when no action needed
+
+### Known CLI Constraints
+- `application` CLI uses `--file` (not `--deffile`) — the `deffile` module param is an alias and must be mapped to `--file` in `build_args`
+- `application` CLI stores the file path as `deffile` in the returned JSON, not as `file`
+- The stored `deffile` path may differ from the provided `file`/`deffile` param (e.g. system package path vs dev path) — do **not** include the file path in idempotency comparisons for existing apps
+- `runtemplate` config is returned flat in the JSON response alongside template metadata fields; compare config values as strings
 
 ## Common Development Tasks
 
@@ -100,7 +116,19 @@ The collection uses:
 
 ### Collection Metadata
 - Namespace: `vitexus`
-- Name: `multiflexi` 
+- Name: `multiflexi`
+- Version: 1.3.0
 - Minimum Ansible: 2.15.0
 - Supported platforms: Debian 10-12, Ubuntu 20.04-24.04
 - License: MIT
+
+### Installing the Local Dev Version
+After making changes to modules, rebuild and reinstall before testing:
+```bash
+ansible-galaxy collection build --force
+ansible-galaxy collection install vitexus-multiflexi-*.tar.gz --force
+```
+Or copy individual module files directly for quick iteration:
+```bash
+cp plugins/modules/application.py ~/.ansible/collections/ansible_collections/vitexus/multiflexi/plugins/modules/
+```

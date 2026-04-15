@@ -223,13 +223,36 @@ def run_module():
     elif state == 'present':
         tpl = find_existing_runtemplate(module)
         if tpl:
+            # Idempotency: check if any desired value differs from the existing template
+            needs_update = False
+            for field in ['name', 'active', 'interv', 'cron', 'executor']:
+                val = module.params.get(field)
+                if val is not None:
+                    tpl_val = tpl.get(field)
+                    # Normalise active: module passes bool, API returns 0/1
+                    if field == 'active':
+                        tpl_val = bool(tpl_val)
+                    if str(val) != str(tpl_val):
+                        needs_update = True
+                        break
+            if not needs_update and module.params.get('config'):
+                for k, v in module.params['config'].items():
+                    if str(tpl.get(k, '')) != str(v):
+                        needs_update = True
+                        break
+
+            if not needs_update:
+                result['changed'] = False
+                result['runtemplate'] = tpl
+                module.exit_json(**result)
+
             # Update
             update_args = ['runtemplate', 'update', '--id', str(tpl['id'])]
             for field in ['name', 'company_id', 'company', 'active', 'interv', 'cron', 'executor', 'schedule_time']:
                 val = module.params.get(field)
                 if val is not None:
                     update_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
-            
+
             # Handle config dictionary
             if module.params.get('config'):
                 for k, v in module.params['config'].items():
