@@ -1,26 +1,23 @@
 ---
-- name: Create runtemplate for demo application
+- name: Find all installed app manifests
+  ansible.builtin.find:
+    paths: /usr/lib
+    patterns: "*.app.json"
+    recurse: true
+  register: app_manifests
+
+- name: Read app manifests
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ app_manifests.files }}"
+  register: app_manifest_contents
+
+- name: Create runtemplate for each installed app
   vitexus.multiflexi.runtemplate:
     state: present
-    name: demo_runtemplate
-    app_uuid: "{{ demo_app_id | default('78fa718c-7ca2-4a38-840e-8e5f0db06432') }}"
+    name: "demo_{{ (item.content | b64decode | from_json).name.en }}"
+    app_uuid: "{{ (item.content | b64decode | from_json).uuid }}"
     company: "{{ demo_company_id | default('DEMO') }}"
+  loop: "{{ app_manifest_contents.results }}"
   become: true
-  register: runtemplate_create_result
-
-- name: Debug runtemplate creation result
-  ansible.builtin.debug:
-    var: runtemplate_create_result
-
-- name: Assert runtemplate creation was successful
-  ansible.builtin.assert:
-    that:
-      - runtemplate_create_result.runtemplate is defined
-      - runtemplate_create_result.runtemplate.name == 'demo_runtemplate'
-    fail_msg: "Runtemplate creation failed: {{ runtemplate_create_result }}"
-
-# The following step for scheduling a run should also use a module if available. If not, document as a TODO.
-- name: Schedule run using the created runtemplate
-  # TODO: Replace with an Ansible module for scheduling runs when available
-  ansible.builtin.debug:
-    msg: "This step should use an Ansible module for scheduling runs, not a direct CLI command."
+  register: runtemplate_results

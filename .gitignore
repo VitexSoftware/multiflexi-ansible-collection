@@ -161,3 +161,6 @@ cython_debug/
 #.idea/
 plugins/modules/.runtemplate.py.kate-swp
 .ansible/.lock
+
+# Ansible collection build artifacts
+*.tar.gz

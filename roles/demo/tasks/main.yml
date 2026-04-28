@@ -3,10 +3,13 @@
   vitexus.multiflexi.multiflexi_info:
   register: multiflexi_info
   become: true
-  
+
 - name: Show MultiFlexi information
   ansible.builtin.debug:
     var: multiflexi_info
+
+- name: Install all available MultiFlexi packages
+  ansible.builtin.include_tasks: install_packages.yml
 
 - name: Include tasks from the demo role
   ansible.builtin.include_tasks: "{{ item }}"
