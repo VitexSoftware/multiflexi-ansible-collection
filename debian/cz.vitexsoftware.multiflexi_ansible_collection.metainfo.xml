@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
   <id>cz.vitexsoftware.multiflexi_ansible_collection</id>
+  <icon type="stock">multiflexi-ansible-collection</icon>
   <metadata_license>MIT</metadata_license>
   <project_license>__NO_COPYRIGHT_NOR_LICENSE__</project_license>
   <name>multiflexi-ansible-collection</name>
