@@ -20,7 +20,7 @@
 
 - name: Install MultiFlexi Web interface
   ansible.builtin.apt:
-    name: 'multiflexi-web'
+    name: 'multiflexi-web5'
     state: present
   become: true
   when: multiflexi_web_interface | default(true) | bool
