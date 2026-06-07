@@ -172,18 +172,18 @@ def run_module():
     )
 
     state = module.params['state']
-    cli_base = ['multiflexi-cli', 'company']
+    cli_base = ['multiflexi-cli']
 
     def get_existing_company():
         # Use the most specific identifier available: id > ic > name > slug
         if module.params.get('id'):
-            args = cli_base + ['get', '--id', str(module.params['id']), '--verbose', '--format', 'json']
+            args = cli_base + ['company:get', '--id', str(module.params['id']), '--verbose', '--format', 'json']
         elif module.params.get('ic'):
-            args = cli_base + ['get', '--ic', module.params['ic'], '--verbose', '--format', 'json']
+            args = cli_base + ['company:get', '--ic', module.params['ic'], '--verbose', '--format', 'json']
         elif module.params.get('name'):
-            args = cli_base + ['get', '--name', module.params['name'], '--verbose', '--format', 'json']
+            args = cli_base + ['company:get', '--name', module.params['name'], '--verbose', '--format', 'json']
         else:
-            args = cli_base + ['get', '--slug', module.params['slug'], '--verbose', '--format', 'json']
+            args = cli_base + ['company:get', '--slug', module.params['slug'], '--verbose', '--format', 'json']
         try:
             output = run_cli_command(args, module=module)
             company = json.loads(output)
@@ -216,7 +216,7 @@ def run_module():
                         changed = True
             if not existing:
                 # Create
-                args = cli_base + ['create']
+                args = cli_base + ['company:create']
                 for k, v in update_fields.items():
                     args += [f'--{k}', str(int(v)) if isinstance(v, bool) else str(v)]
                 args += ['--verbose', '--format', 'json']
@@ -227,7 +227,7 @@ def run_module():
                 result['changed'] = True
             elif changed:
                 # Update only if something changed
-                args = cli_base + ['update', '--id', str(existing['id'])]
+                args = cli_base + ['company:update', '--id', str(existing['id'])]
                 for k, v in update_fields.items():
                     args += [f'--{k}', str(int(v)) if isinstance(v, bool) else str(v)]
                 args += ['--verbose', '--format', 'json']
@@ -248,7 +248,7 @@ def run_module():
         elif state == 'absent':
             existing, notfound_msg = get_existing_company()
             if existing:
-                args = cli_base + ['remove', '--id', str(existing['id']), '--verbose', '--format', 'json']
+                args = cli_base + ['company:remove', '--id', str(existing['id']), '--verbose', '--format', 'json']
                 if module.check_mode:
                     result['changed'] = True
                     module.exit_json(**result)

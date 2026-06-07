@@ -138,132 +138,121 @@ def run_module():
     )
 
     state = module.params.get('state')
-    cli_base = ['multiflexi-cli', 'companyapp']
+    cli_base = ['multiflexi-cli']
 
     try:
-        if state == 'get':
-            if module.params.get('relation_id'):
-                args = cli_base + ['get', '--id', str(module.params['relation_id']), '--format', 'json', '--verbose']
-            else:
-                # List all relations if no specific ID
-                args = cli_base + ['list', '--format', 'json', '--verbose']
-            output = run_cli_command(args, module=module, allow_not_found=True)
+        # Helper to find an existing relation
+        def find_existing_relation():
+            relation_id = module.params.get('relation_id')
+            company_id = module.params.get('company_id')
+            app_id = module.params.get('app_id')
+            app_uuid = module.params.get('app_uuid')
+
+            list_args = cli_base + ['company-app:list', '--format', 'json']
+            if company_id:
+                list_args += ['--company_id', str(company_id)]
+            if app_id:
+                list_args += ['--app_id', str(app_id)]
+            elif app_uuid:
+                list_args += ['--app_uuid', app_uuid]
+
             try:
-                companyapp = json.loads(output)
-                result['companyapp'] = companyapp
-            except json.JSONDecodeError:
-                result['companyapp'] = None
-                result['message'] = 'No relations found or invalid response'
+                output = run_cli_command(list_args, module=module, allow_not_found=True)
+                relations = json.loads(output)
+                if isinstance(relations, list):
+                    if relation_id:
+                        for r in relations:
+                            if r.get('id') == relation_id:
+                                return r
+                    elif len(relations) > 0:
+                        return relations[0]
+            except Exception:
+                pass
+            return None
+
+        if state == 'get':
+            relation = find_existing_relation()
+            if relation:
+                result['companyapp'] = relation
+            else:
+                if module.params.get('relation_id') or (module.params.get('company_id') and (module.params.get('app_id') or module.params.get('app_uuid'))):
+                    result['companyapp'] = None
+                    result['message'] = 'Relation not found'
+                else:
+                    # List all
+                    list_args = cli_base + ['company-app:list', '--format', 'json', '--verbose']
+                    output = run_cli_command(list_args, module=module, allow_not_found=True)
+                    try:
+                        result['companyapp'] = json.loads(output)
+                    except json.JSONDecodeError:
+                        result['companyapp'] = None
+                        result['message'] = 'No relations found or invalid response'
             module.exit_json(**result)
             
         elif state == 'present':
             # Check if relation already exists
-            existing_relation = None
-            if module.params.get('relation_id'):
-                check_args = cli_base + ['get', '--id', str(module.params['relation_id']), '--format', 'json', '--verbose']
-                try:
-                    output = run_cli_command(check_args, module=module, allow_not_found=True)
-                    existing_relation = json.loads(output)
-                except:
-                    existing_relation = None
+            existing_relation = find_existing_relation()
 
-            if existing_relation and existing_relation.get('id'):
-                # Update existing relation
-                update_args = cli_base + ['update', '--id', str(existing_relation['id'])]
-                if module.params.get('company_id'):
-                    update_args += ['--company_id', str(module.params['company_id'])]
-                if module.params.get('app_id'):
-                    update_args += ['--app_id', str(module.params['app_id'])]
-                elif module.params.get('app_uuid'):
-                    update_args += ['--app_uuid', module.params['app_uuid']]
-                
-                if module.check_mode:
-                    result['changed'] = True
-                    result['companyapp'] = existing_relation
-                    module.exit_json(**result)
-                    
-                update_args += ['--format', 'json', '--verbose']
-                output = run_cli_command(update_args, module=module)
-                result['changed'] = True
-                try:
-                    result['companyapp'] = json.loads(output)
-                except json.JSONDecodeError:
-                    result['companyapp'] = existing_relation
+            if existing_relation:
+                result['changed'] = False
+                result['companyapp'] = existing_relation
+                result['message'] = 'Company-application relation already exists'
             else:
-                # Create new relation
-                create_args = cli_base + ['create']
-                if module.params.get('company_id'):
-                    create_args += ['--company_id', str(module.params['company_id'])]
-                else:
+                # Create new relation using company-app:assign
+                company_id = module.params.get('company_id')
+                app_id = module.params.get('app_id')
+                app_uuid = module.params.get('app_uuid')
+
+                if not company_id:
                     module.fail_json(msg='company_id is required for creating company-application relations')
-                    
-                if module.params.get('app_id'):
-                    create_args += ['--app_id', str(module.params['app_id'])]
-                elif module.params.get('app_uuid'):
-                    create_args += ['--app_uuid', module.params['app_uuid']]
-                else:
+                if not app_id and not app_uuid:
                     module.fail_json(msg='Either app_id or app_uuid is required for creating company-application relations')
-                
+
+                create_args = cli_base + ['company-app:assign', '--company_id', str(company_id)]
+                if app_id:
+                    create_args += ['--app_id', str(app_id)]
+                elif app_uuid:
+                    create_args += ['--app_uuid', app_uuid]
+
                 if module.check_mode:
                     result['changed'] = True
                     result['companyapp'] = None
                     module.exit_json(**result)
                     
                 create_args += ['--format', 'json', '--verbose']
-                try:
-                    output = run_cli_command(create_args, module=module, allow_not_found=True)
-                    if 'already exists' in output.lower():
-                        # Relation already exists, not an error
-                        result['changed'] = False
-                        result['message'] = 'Company-application relation already exists'
-                        # Try to get the existing relation info
-                        list_args = cli_base + ['list', '--format', 'json', '--verbose']
-                        if module.params.get('company_id'):
-                            list_args += ['--company_id', str(module.params['company_id'])]
-                        try:
-                            list_output = run_cli_command(list_args, module=module)
-                            relations = json.loads(list_output)
-                            if isinstance(relations, list):
-                                for rel in relations:
-                                    if (module.params.get('app_uuid') and rel.get('app_uuid') == module.params.get('app_uuid')) or \
-                                       (module.params.get('app_id') and rel.get('app_id') == module.params.get('app_id')):
-                                        result['companyapp'] = rel
-                                        break
-                        except:
-                            pass
-                    else:
-                        result['changed'] = True
-                        try:
-                            result['companyapp'] = json.loads(output)
-                        except json.JSONDecodeError:
-                            result['message'] = 'Relation created successfully'
-                except Exception as e:
-                    if 'already exists' in str(e).lower():
-                        result['changed'] = False
-                        result['message'] = 'Company-application relation already exists'
-                    else:
-                        raise e
+                run_cli_command(create_args, module=module)
+                result['changed'] = True
+                
+                # Fetch the newly created assignment
+                new_relation = find_existing_relation()
+                result['companyapp'] = new_relation
             module.exit_json(**result)
             
         elif state == 'absent':
-            if not module.params.get('relation_id'):
-                module.fail_json(msg='relation_id is required for deleting company-application relations')
+            existing_relation = find_existing_relation()
                 
-            # Check if relation exists
-            check_args = cli_base + ['get', '--id', str(module.params['relation_id']), '--format', 'json', '--verbose']
-            try:
-                output = run_cli_command(check_args, module=module, allow_not_found=True)
-                existing_relation = json.loads(output)
-            except:
-                existing_relation = None
-                
-            if existing_relation and existing_relation.get('id'):
+            if existing_relation:
+                cid = module.params.get('company_id') or existing_relation.get('company_id')
+                aid = module.params.get('app_id') or existing_relation.get('app_id')
+                auuid = module.params.get('app_uuid') or existing_relation.get('app_uuid')
+
+                if not cid:
+                    module.fail_json(msg='company_id is required to remove company-application relation')
+                if not aid and not auuid:
+                    module.fail_json(msg='Either app_id or app_uuid is required to remove company-application relation')
+
                 if module.check_mode:
                     result['changed'] = True
                     result['companyapp'] = existing_relation
                     module.exit_json(**result)
                     
-                delete_args = cli_base + ['delete', '--id', str(module.params['relation_id']), '--format', 'json', '--verbose']
+                delete_args = cli_base + ['company-app:unassign', '--company_id', str(cid)]
+                if aid:
+                    delete_args += ['--app_id', str(aid)]
+                elif auuid:
+                    delete_args += ['--app_uuid', auuid]
+                delete_args += ['--format', 'json', '--verbose']
+                
                 run_cli_command(delete_args, module=module)
                 result['changed'] = True
                 result['companyapp'] = existing_relation

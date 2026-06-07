@@ -163,17 +163,17 @@ def run_module():
     )
 
     state = module.params.get('state')
-    cli_base = ['multiflexi-cli', 'application']
+    cli_base = ['multiflexi-cli']
 
     try:
         # If no state is provided, default to info/read (get)
         if not state or state == 'get':
             if module.params.get('app_id'):
-                args = cli_base + ['get', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
+                args = cli_base + ['application:get', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
             elif module.params.get('uuid'):
-                args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+                args = cli_base + ['application:get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
             elif module.params.get('name'):
-                args = cli_base + ['get', '--name', module.params['name'], '--format', 'json', '--verbose']
+                args = cli_base + ['application:get', '--name', module.params['name'], '--format', 'json', '--verbose']
             else:
                 module.fail_json(msg='Either app_id, uuid, or name is required to get application info.')
             output = run_cli_command(args, module=module, allow_not_found=True)
@@ -188,21 +188,21 @@ def run_module():
             found_app_id = None
             app_data = None
             if module.params.get('app_id'):
-                check_args = cli_base + ['get', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
+                check_args = cli_base + ['application:get', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
                 output = run_cli_command(check_args, module=module, allow_not_found=True)
                 app = json.loads(output)
                 if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
                     found_app_id = app['id']
                     app_data = app
             elif module.params.get('uuid'):
-                check_args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+                check_args = cli_base + ['application:get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
                 output = run_cli_command(check_args, module=module, allow_not_found=True)
                 app = json.loads(output)
                 if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
                     found_app_id = app['id']
                     app_data = app
             elif module.params.get('name'):
-                check_args = cli_base + ['get', '--name', module.params['name'], '--format', 'json', '--verbose']
+                check_args = cli_base + ['application:get', '--name', module.params['name'], '--format', 'json', '--verbose']
                 output = run_cli_command(check_args, module=module, allow_not_found=True)
                 app = json.loads(output)
                 if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
@@ -233,22 +233,22 @@ def run_module():
                 return args
             if found_app_id:
                 if needs_update:
-                    args = build_args(cli_base + ['update', '--id', str(found_app_id)], module.params)
+                    args = build_args(cli_base + ['application:update', '--id', str(found_app_id)], module.params)
                     run_cli_command(args, module=module)
                     result['changed'] = True
                 else:
                     result['changed'] = False
             else:
-                args = build_args(cli_base + ['create'], module.params)
+                args = build_args(cli_base + ['application:create'], module.params)
                 run_cli_command(args, module=module)
                 result['changed'] = True
             # Always read the record and return as result
             if found_app_id:
-                read_args = cli_base + ['get', '--id', str(found_app_id), '--format', 'json', '--verbose']
+                read_args = cli_base + ['application:get', '--id', str(found_app_id), '--format', 'json', '--verbose']
             elif module.params.get('uuid'):
-                read_args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+                read_args = cli_base + ['application:get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
             elif module.params.get('name'):
-                read_args = cli_base + ['get', '--name', module.params['name'], '--format', 'json', '--verbose']
+                read_args = cli_base + ['application:get', '--name', module.params['name'], '--format', 'json', '--verbose']
             else:
                 module.fail_json(msg='Either app_id, uuid, or name is required to get application info.')
             output = run_cli_command(read_args, module=module, allow_not_found=True)
@@ -261,11 +261,11 @@ def run_module():
         elif state == 'absent':
             # Use the most specific identifier for removal
             if module.params.get('app_id'):
-                args = cli_base + ['delete', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
+                args = cli_base + ['application:delete', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
             elif module.params.get('uuid'):
-                args = cli_base + ['delete', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+                args = cli_base + ['application:delete', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
             elif module.params.get('name'):
-                args = cli_base + ['delete', '--name', module.params['name'], '--format', 'json', '--verbose']
+                args = cli_base + ['application:delete', '--name', module.params['name'], '--format', 'json', '--verbose']
             else:
                 result['changed'] = False
                 module.exit_json(**result)

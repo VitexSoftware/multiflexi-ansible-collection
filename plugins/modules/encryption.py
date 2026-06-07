@@ -80,11 +80,11 @@ def run_module():
 
     state = module.params['state']
     cli_path = module.params['multiflexi_cli_path']
-    cli_base = [cli_path, 'encryption']
+    cli_base = [cli_path]
 
     try:
         if state == 'status':
-            args = cli_base + ['status', '--format', 'json']
+            args = cli_base + ['encryption:status', '--format', 'json']
             output = run_cli_command(args)
             result['encryption'] = json.loads(output)
             result['msg'] = "Retrieved encryption status"
@@ -94,7 +94,7 @@ def run_module():
                 result['msg'] = "Would initialize encryption keys"
                 result['changed'] = True
             else:
-                args = cli_base + ['init', '--format', 'json']
+                args = cli_base + ['encryption:init', '--format', 'json']
                 output = run_cli_command(args)
                 result['encryption'] = json.loads(output)
                 result['changed'] = True

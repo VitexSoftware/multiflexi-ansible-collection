@@ -152,12 +152,12 @@ def run_module():
     )
 
     state = module.params['state']
-    cli_base = ['multiflexi-cli', 'artifact']
+    cli_base = ['multiflexi-cli']
 
     try:
         if state == 'list':
             # List artifacts, optionally filtered by job_id
-            args = cli_base + ['list', '--format', 'json']
+            args = cli_base + ['artifact:list', '--format', 'json']
             
             if module.params.get('job_id'):
                 args.extend(['--job_id', str(module.params['job_id'])])
@@ -174,7 +174,7 @@ def run_module():
             if not module.params.get('id'):
                 module.fail_json(msg="id parameter is required for get operation")
             
-            args = cli_base + ['get', '--id', str(module.params['id']), '--format', 'json']
+            args = cli_base + ['artifact:get', '--id', str(module.params['id']), '--format', 'json']
             
             if module.params.get('fields'):
                 args.extend(['--fields', module.params['fields']])
@@ -211,7 +211,7 @@ def run_module():
                 result['saved_to'] = file_path
                 module.exit_json(**result)
             
-            args = cli_base + ['save', '--id', str(module.params['id']), '--file', file_path]
+            args = cli_base + ['artifact:save', '--id', str(module.params['id']), '--file', file_path]
             
             output = run_cli_command(args, module=module)
             
@@ -219,7 +219,7 @@ def run_module():
             if os.path.exists(file_path):
                 result['saved_to'] = file_path
                 # Also get the artifact info for reference
-                get_args = cli_base + ['get', '--id', str(module.params['id']), '--format', 'json']
+                get_args = cli_base + ['artifact:get', '--id', str(module.params['id']), '--format', 'json']
                 try:
                     get_output = run_cli_command(get_args, module=module)
                     artifact = json.loads(get_output)

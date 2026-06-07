@@ -107,7 +107,7 @@ def find_existing_credential(module):
     # Priority: credential_id > name
     if module.params.get('credential_id'):
         try:
-            cli_args = ['credential', 'get', '--id', str(module.params['credential_id'])]
+            cli_args = ['credential:get', '--id', str(module.params['credential_id'])]
             res = run_cli(module, cli_args)
             if isinstance(res, dict) and res.get('id'):
                 return res
@@ -116,7 +116,7 @@ def find_existing_credential(module):
     elif module.params.get('name'):
         try:
             # List all credentials and find by name
-            res = run_cli(module, ['credential', 'list'])
+            res = run_cli(module, ['credential:list'])
             if isinstance(res, list):
                 for cred in res:
                     if cred.get('name') == module.params['name']:
@@ -154,7 +154,7 @@ def run_module():
             result['credential'] = cred
         else:
             # List all
-            res = run_cli(module, ['credential', 'list'])
+            res = run_cli(module, ['credential:list'])
             result['credential'] = res
         module.exit_json(**result)
 
@@ -169,7 +169,7 @@ def run_module():
             if not module.params.get('credential_type_id'):
                 module.fail_json(msg="Credential type ID is required for creating a new credential")
             
-            create_args = ['credential', 'create', '--name', module.params['name']]
+            create_args = ['credential:create', '--name', module.params['name']]
             create_args += ['--company-id', str(module.params['company_id'])]
             create_args += ['--credential-type-id', str(module.params['credential_type_id'])]
             
@@ -186,7 +186,7 @@ def run_module():
             module.exit_json(**result)
         else:
             # Update existing credential
-            update_args = ['credential', 'update', '--id', str(cred['id'])]
+            update_args = ['credential:update', '--id', str(cred['id'])]
             changed = False
             
             for field, cli_arg in [('name', '--name'), ('company_id', '--company-id'), ('credential_type_id', '--credential-type-id')]:
@@ -206,7 +206,7 @@ def run_module():
             
             run_cli(module, update_args)
             # Fetch latest
-            latest = run_cli(module, ['credential', 'get', '--id', str(cred['id'])])
+            latest = run_cli(module, ['credential:get', '--id', str(cred['id'])])
             result['changed'] = True
             result['credential'] = latest
             module.exit_json(**result)
@@ -222,7 +222,7 @@ def run_module():
             result['credential'] = None
             module.exit_json(**result)
         
-        run_cli(module, ['credential', 'remove', '--id', str(cred['id'])])
+        run_cli(module, ['credential:remove', '--id', str(cred['id'])])
         result['changed'] = True
         result['credential'] = None
         module.exit_json(**result)

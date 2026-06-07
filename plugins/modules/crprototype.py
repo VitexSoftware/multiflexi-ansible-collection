@@ -200,11 +200,11 @@ def run_module():
 
     state = module.params['state']
     cli_path = module.params['multiflexi_cli_path']
-    cli_base = [cli_path, 'crprototype']
+    cli_base = [cli_path]
 
     try:
         if state == 'list':
-            args = cli_base + ['list', '--format', 'json']
+            args = cli_base + ['credential-prototype:list', '--format', 'json']
             output = run_cli_command(args, module=module)
             result['crprototype'] = json.loads(output)
             result['msg'] = "Retrieved credential prototype list"
@@ -213,19 +213,19 @@ def run_module():
             # Check if prototype exists
             existing = None
             if module.params.get('prototype_id'):
-                args = cli_base + ['get', '--id', str(module.params['prototype_id']), '--format', 'json']
+                args = cli_base + ['credential-prototype:get', '--id', str(module.params['prototype_id']), '--format', 'json']
                 output = run_cli_command(args, module=module)
                 data = json.loads(output)
                 if isinstance(data, dict) and data.get('id') and data.get('status') != 'not found':
                     existing = data
             elif module.params.get('uuid'):
-                args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json']
+                args = cli_base + ['credential-prototype:get', '--uuid', module.params['uuid'], '--format', 'json']
                 output = run_cli_command(args, module=module)
                 data = json.loads(output)
                 if isinstance(data, dict) and data.get('id') and data.get('status') != 'not found':
                     existing = data
             elif module.params.get('code'):
-                args = cli_base + ['get', '--code', module.params['code'], '--format', 'json']
+                args = cli_base + ['credential-prototype:get', '--code', module.params['code'], '--format', 'json']
                 output = run_cli_command(args, module=module)
                 data = json.loads(output)
                 if isinstance(data, dict) and data.get('id') and data.get('status') != 'not found':
@@ -233,7 +233,7 @@ def run_module():
 
             if existing:
                 # Update
-                update_args = cli_base + ['update', '--id', str(existing['id'])]
+                update_args = cli_base + ['credential-prototype:update', '--id', str(existing['id'])]
                 changed = False
                 for field, cli_opt in [('name', '--name'), ('description', '--description'),
                                        ('prototype_version', '--prototype-version'),
@@ -262,7 +262,7 @@ def run_module():
                 result['msg'] = "Updated credential prototype"
             else:
                 # Create
-                create_args = cli_base + ['create']
+                create_args = cli_base + ['credential-prototype:create']
                 for field, cli_opt in [('name', '--name'), ('description', '--description'),
                                        ('code', '--code'), ('prototype_version', '--prototype-version'),
                                        ('logo', '--logo'), ('url', '--url'), ('uuid', '--uuid')]:
@@ -287,7 +287,7 @@ def run_module():
                 module.fail_json(msg="prototype_id is required for absent state")
 
             # Check if exists
-            args = cli_base + ['get', '--id', str(module.params['prototype_id']), '--format', 'json']
+            args = cli_base + ['credential-prototype:get', '--id', str(module.params['prototype_id']), '--format', 'json']
             try:
                 output = run_cli_command(args, module=module)
                 data = json.loads(output)
@@ -306,7 +306,7 @@ def run_module():
                 module.exit_json(**result)
                 return
 
-            args = cli_base + ['delete', '--id', str(module.params['prototype_id']), '--format', 'json']
+            args = cli_base + ['credential-prototype:delete', '--id', str(module.params['prototype_id']), '--format', 'json']
             output = run_cli_command(args, module=module)
             result['changed'] = True
             result['msg'] = "Deleted credential prototype"
@@ -321,7 +321,7 @@ def run_module():
                 module.exit_json(**result)
                 return
 
-            args = cli_base + ['import-json', '--file', module.params['file'], '--format', 'json']
+            args = cli_base + ['credential-prototype:import-json', '--file', module.params['file'], '--format', 'json']
             output = run_cli_command(args, module=module)
             result['crprototype'] = json.loads(output)
             result['changed'] = True
@@ -339,7 +339,7 @@ def run_module():
                 module.exit_json(**result)
                 return
 
-            args = cli_base + ['export-json', '--file', module.params['file'], '--format', 'json']
+            args = cli_base + ['credential-prototype:export-json', '--file', module.params['file'], '--format', 'json']
             if module.params.get('prototype_id'):
                 args.extend(['--id', str(module.params['prototype_id'])])
             elif module.params.get('uuid'):
@@ -354,7 +354,7 @@ def run_module():
             if not module.params.get('file'):
                 module.fail_json(msg="file parameter is required for validate operation")
 
-            args = cli_base + ['validate-json', '--file', module.params['file'], '--format', 'json']
+            args = cli_base + ['credential-prototype:validate-json', '--file', module.params['file'], '--format', 'json']
             output = run_cli_command(args, module=module)
             result['crprototype'] = json.loads(output)
             result['msg'] = "Validated credential prototype file {}".format(module.params['file'])
@@ -366,7 +366,7 @@ def run_module():
                 module.exit_json(**result)
                 return
 
-            args = cli_base + ['sync', '--format', 'json']
+            args = cli_base + ['credential-prototype:sync', '--format', 'json']
             output = run_cli_command(args, module=module)
             # sync may output log lines before JSON; extract last JSON object/array
             parsed = None

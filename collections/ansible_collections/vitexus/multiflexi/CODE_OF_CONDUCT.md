@@ -1,0 +1,1 @@
+/home/vitex/Projects/Multi/multiflexi-ansible-collection/CODE_OF_CONDUCT.md

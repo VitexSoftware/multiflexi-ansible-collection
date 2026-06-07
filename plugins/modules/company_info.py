@@ -86,7 +86,7 @@ def main():
         supports_check_mode=True
     )
 
-    cli_base = ['multiflexi-cli', 'company', 'get', '--verbose', '--format', 'json']
+    cli_base = ['multiflexi-cli', 'company:get', '--verbose', '--format', 'json']
     if module.params.get('slug'):
         cli_base += ['--slug', module.params['slug']]
     elif module.params.get('ic'):

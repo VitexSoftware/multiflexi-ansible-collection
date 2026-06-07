@@ -166,11 +166,11 @@ def run_module():
 
     state = module.params['state']
     cli_path = module.params['multiflexi_cli_path']
-    cli_base = [cli_path, 'eventrule']
+    cli_base = [cli_path]
 
     try:
         if state == 'list':
-            args = cli_base + ['list', '--format', 'json']
+            args = cli_base + ['event-rule:list', '--format', 'json']
             if module.params.get('limit'):
                 args.extend(['--limit', str(module.params['limit'])])
             if module.params.get('order'):
@@ -182,13 +182,13 @@ def run_module():
         elif state == 'present':
             if module.params.get('eventrule_id'):
                 # Get existing event rule
-                args = cli_base + ['get', '--id', str(module.params['eventrule_id']), '--format', 'json']
+                args = cli_base + ['event-rule:get', '--id', str(module.params['eventrule_id']), '--format', 'json']
                 output = run_cli_command(args)
                 result['eventrule'] = json.loads(output)
                 result['msg'] = f"Retrieved event rule {module.params['eventrule_id']}"
 
                 # Update if any fields provided
-                update_args = cli_base + ['update', '--id', str(module.params['eventrule_id'])]
+                update_args = cli_base + ['event-rule:update', '--id', str(module.params['eventrule_id'])]
                 has_updates = False
                 for field in ['eventsource_id', 'runtemplate_id', 'evidence', 'operation',
                               'condition', 'env_mapping', 'priority']:
@@ -210,7 +210,7 @@ def run_module():
                         result['msg'] = f"Updated event rule {module.params['eventrule_id']}"
 
                         # Get updated record
-                        args = cli_base + ['get', '--id', str(module.params['eventrule_id']), '--format', 'json']
+                        args = cli_base + ['event-rule:get', '--id', str(module.params['eventrule_id']), '--format', 'json']
                         output = run_cli_command(args)
                         result['eventrule'] = json.loads(output)
             else:
@@ -228,7 +228,7 @@ def run_module():
                     result['msg'] = "Would create event rule"
                     result['changed'] = True
                 else:
-                    create_args = cli_base + ['create',
+                    create_args = cli_base + ['event-rule:create',
                         '--eventsource_id', str(module.params['eventsource_id']),
                         '--runtemplate_id', str(module.params['runtemplate_id']),
                         '--evidence', module.params['evidence'],
@@ -253,7 +253,7 @@ def run_module():
                 result['msg'] = f"Would remove event rule {module.params['eventrule_id']}"
                 result['changed'] = True
             else:
-                args = cli_base + ['remove', '--id', str(module.params['eventrule_id']), '--format', 'json']
+                args = cli_base + ['event-rule:remove', '--id', str(module.params['eventrule_id']), '--format', 'json']
                 output = run_cli_command(args)
                 result['eventrule'] = json.loads(output)
                 result['changed'] = True

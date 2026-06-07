@@ -177,11 +177,11 @@ def run_module():
 
     state = module.params['state']
     cli_path = module.params['multiflexi_cli_path']
-    cli_base = [cli_path, 'credtype']
+    cli_base = [cli_path]
 
     try:
         if state == 'list':
-            args = cli_base + ['list', '--format', 'json']
+            args = cli_base + ['credential-type:list', '--format', 'json']
             if module.params.get('limit'):
                 args.extend(['--limit', str(module.params['limit'])])
             if module.params.get('order'):
@@ -193,40 +193,40 @@ def run_module():
         elif state == 'present':
             # Get credential type by ID, UUID, or name
             if module.params.get('credential_type_id'):
-                args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--format', 'json']
+                args = cli_base + ['credential-type:get', '--id', str(module.params['credential_type_id']), '--format', 'json']
                 output = run_cli_command(args, module=module)
                 result['credential_type'] = json.loads(output)
                 result['msg'] = f"Retrieved credential type {module.params['credential_type_id']}"
                 
                 # Update if name is provided
                 if module.params.get('name'):
-                    args = cli_base + ['update', '--id', str(module.params['credential_type_id']), 
+                    args = cli_base + ['credential-type:update', '--id', str(module.params['credential_type_id']), 
                                      '--name', module.params['name'], '--format', 'json']
                     output = run_cli_command(args, module=module)
                     result['changed'] = True
                     result['msg'] = f"Updated credential type {module.params['credential_type_id']}"
                     
                     # Get updated credential type
-                    args = cli_base + ['get', '--id', str(module.params['credential_type_id']), '--format', 'json']
+                    args = cli_base + ['credential-type:get', '--id', str(module.params['credential_type_id']), '--format', 'json']
                     output = run_cli_command(args, module=module)
                     result['credential_type'] = json.loads(output)
                     
             elif module.params.get('uuid'):
-                args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json']
+                args = cli_base + ['credential-type:get', '--uuid', module.params['uuid'], '--format', 'json']
                 output = run_cli_command(args, module=module)
                 result['credential_type'] = json.loads(output)
                 result['msg'] = f"Retrieved credential type {module.params['uuid']}"
                 
                 # Update if name is provided
                 if module.params.get('name'):
-                    args = cli_base + ['update', '--uuid', module.params['uuid'], 
+                    args = cli_base + ['credential-type:update', '--uuid', module.params['uuid'], 
                                      '--name', module.params['name'], '--format', 'json']
                     output = run_cli_command(args, module=module)
                     result['changed'] = True
                     result['msg'] = f"Updated credential type {module.params['uuid']}"
                     
                     # Get updated credential type
-                    args = cli_base + ['get', '--uuid', module.params['uuid'], '--format', 'json']
+                    args = cli_base + ['credential-type:get', '--uuid', module.params['uuid'], '--format', 'json']
                     output = run_cli_command(args, module=module)
                     result['credential_type'] = json.loads(output)
 
@@ -234,7 +234,7 @@ def run_module():
                 # Check if a credential type with this class for this company already exists
                 existing = None
                 try:
-                    args = cli_base + ['list', '--format', 'json']
+                    args = cli_base + ['credential-type:list', '--format', 'json']
                     output = run_cli_command(args, module=module)
                     credtypes = json.loads(output)
                     if isinstance(credtypes, list):
@@ -255,7 +255,7 @@ def run_module():
                         result['changed'] = True
                         result['msg'] = f"Would create credential type for class {module.params['class_name']}"
                         module.exit_json(**result)
-                    args = cli_base + ['create',
+                    args = cli_base + ['credential-type:create',
                                       '--company-id', str(module.params['company_id']),
                                       '--class', module.params['class_name'],
                                       '--format', 'json']
@@ -266,7 +266,7 @@ def run_module():
                     
             else:
                 # List all credential types if no specific identifier
-                args = cli_base + ['list', '--format', 'json']
+                args = cli_base + ['credential-type:list', '--format', 'json']
                 if module.params.get('limit'):
                     args.extend(['--limit', str(module.params['limit'])])
                 if module.params.get('order'):
@@ -283,58 +283,37 @@ def run_module():
                 result['msg'] = f"Would import credential type from {module.params['file']}"
                 result['changed'] = True
             else:
-                args = cli_base + ['import-json', '--file', module.params['file'], '--format', 'json']
+                args = cli_base + ['credential-type:import-json', '--file', module.params['file'], '--format', 'json']
                 output = run_cli_command(args)
                 result['credential_type'] = json.loads(output)
                 result['changed'] = True
                 result['msg'] = f"Imported credential type from {module.params['file']}"
                 
         elif state == 'export':
-            if not module.params.get('file'):
-                module.fail_json(msg="file parameter is required for export operation")
-            if not (module.params.get('credential_type_id') or module.params.get('uuid')):
-                module.fail_json(msg="credential_type_id or uuid is required for export operation")
-            
-            if module.check_mode:
-                result['msg'] = f"Would export credential type to {module.params['file']}"
-                result['changed'] = True
-            else:
-                args = cli_base + ['export-json', '--file', module.params['file'], '--format', 'json']
-                if module.params.get('credential_type_id'):
-                    args.extend(['--id', str(module.params['credential_type_id'])])
-                elif module.params.get('uuid'):
-                    args.extend(['--uuid', module.params['uuid']])
-                    
-                output = run_cli_command(args)
-                result['credential_type'] = json.loads(output)
-                result['changed'] = True
-                result['msg'] = f"Exported credential type to {module.params['file']}"
+            module.fail_json(msg="export-json is not supported for credential-type in this version of multiflexi-cli.")
                 
         elif state == 'validate':
             if not module.params.get('file'):
                 module.fail_json(msg="file parameter is required for validate operation")
                 
-            args = cli_base + ['validate-json', '--file', module.params['file'], '--format', 'json']
+            args = cli_base + ['credential-type:validate-json', '--file', module.params['file'], '--format', 'json']
             output = run_cli_command(args)
             result['credential_type'] = json.loads(output)
             result['msg'] = f"Validated credential type file {module.params['file']}"
             
         elif state == 'remove-json':
-            if not module.params.get('file'):
-                module.fail_json(msg="file parameter is required for remove-json operation")
-                
-            if module.check_mode:
-                result['msg'] = f"Would remove credential type based on {module.params['file']}"
-                result['changed'] = True
-            else:
-                args = cli_base + ['remove-json', '--file', module.params['file'], '--format', 'json']
-                output = run_cli_command(args)
-                result['credential_type'] = json.loads(output)
-                result['changed'] = True
-                result['msg'] = f"Removed credential type based on {module.params['file']}"
+            module.fail_json(msg="remove-json is not supported for credential-type in this version of multiflexi-cli. Use state=absent instead.")
                 
         elif state == 'absent':
-            module.fail_json(msg="Direct deletion by ID/UUID is not supported. Use remove-json with a file instead.")
+            if not module.params.get('credential_type_id'):
+                module.fail_json(msg="credential_type_id is required for delete operation")
+            if module.check_mode:
+                result['changed'] = True
+                module.exit_json(**result)
+            args = cli_base + ['credential-type:delete', '--id', str(module.params['credential_type_id']), '--format', 'json']
+            output = run_cli_command(args)
+            result['changed'] = True
+            result['msg'] = f"Deleted credential type {module.params['credential_type_id']}"
             
     except Exception as e:
         module.fail_json(msg=str(e))
