@@ -196,20 +196,17 @@ def run_module():
             
             file_path = module.params['file_path']
             
+            if module.check_mode:
+                result['changed'] = True
+                result['saved_to'] = file_path
+                module.exit_json(**result)
+
             # Check if file already exists
             if os.path.exists(file_path):
-                if module.check_mode:
-                    result['changed'] = True
-                    result['saved_to'] = file_path
-                    module.exit_json(**result)
                 # File exists, we might overwrite it - this counts as a change
                 result['changed'] = True
             else:
                 result['changed'] = True
-            
-            if module.check_mode:
-                result['saved_to'] = file_path
-                module.exit_json(**result)
             
             args = cli_base + ['artifact:save', '--id', str(module.params['id']), '--file', file_path]
             

@@ -50,7 +50,7 @@ options:
         type: int
     company:
         description:
-            - The company slug/code.
+            - The company slug/code or ID.
         required: false
         type: str
     active:
@@ -60,7 +60,7 @@ options:
         type: bool
     interv:
         description:
-            - Interval specification.
+            - Interval specification code.
         required: false
         type: str
     cron:
@@ -162,13 +162,13 @@ def run_cli(module, args):
 def find_existing_runtemplate(module):
     # Priority: runtemplate_id > (name + company/company_id)
     if module.params.get('runtemplate_id'):
-        res = run_cli(module, ['runtemplate', 'get', '--id', str(module.params['runtemplate_id'])])
+        res = run_cli(module, ['run-template:get', '--id', str(module.params['runtemplate_id'])])
         if isinstance(res, dict) and res.get('id'):
             return res
         if isinstance(res, dict) and res.get('_not_found'):
             return None
     elif module.params.get('name'):
-        args = ['runtemplate', 'get', '--name', module.params['name']]
+        args = ['run-template:get', '--name', module.params['name']]
         # Add company or company_id if provided
         if module.params.get('company'):
             args += ['--company', module.params['company']]
@@ -190,7 +190,7 @@ def run_module():
         app_id=dict(type='int', required=False),
         app_uuid=dict(type='str', required=False),
         company_id=dict(type='int', required=False),
-        company=dict(type='str', required=False),  # <-- new option
+        company=dict(type='str', required=False),
         active=dict(type='bool', required=False),
         interv=dict(type='str', required=False),
         cron=dict(type='str', required=False),
@@ -216,7 +216,7 @@ def run_module():
         if tpl:
             result['runtemplate'] = tpl
         else:
-            templates = run_cli(module, ['runtemplate', 'list'])
+            templates = run_cli(module, ['run-template:list'])
             result['runtemplate'] = templates
         module.exit_json(**result)
 
@@ -224,35 +224,58 @@ def run_module():
         tpl = find_existing_runtemplate(module)
         if tpl:
             # Update
-            update_args = ['runtemplate', 'update', '--id', str(tpl['id'])]
-            for field in ['name', 'company_id', 'company', 'active', 'interv', 'cron', 'executor', 'schedule_time']:
+            update_args = ['run-template:update', '--id', str(tpl['id'])]
+            changed = False
+
+            # Simple fields
+            for field in ['name', 'company_id', 'company', 'active', 'interv', 'cron', 'executor']:
                 val = module.params.get(field)
                 if val is not None:
-                    update_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
+                    # Compare
+                    current_val = tpl.get(field)
+                    if isinstance(val, bool):
+                        current_val = bool(current_val)
+                    if str(val) != str(current_val):
+                        update_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
+                        changed = True
             
             # Handle config dictionary
             if module.params.get('config'):
+                # CLI config is repeatable key=value
                 for k, v in module.params['config'].items():
                     update_args += ['--config', f'{k}={v}']
+                # We assume any config provided means we want to set it.
+                # For proper idempotency we should compare with existing config, but it's returned flat.
+                changed = True
 
             # Prefer app_uuid over app_id if provided
             if module.params.get('app_uuid'):
-                update_args += ['--app_uuid', module.params['app_uuid']]
+                if module.params['app_uuid'] != tpl.get('app_uuid'):
+                    update_args += ['--app_uuid', module.params['app_uuid']]
+                    changed = True
             elif module.params.get('app_id'):
-                update_args += ['--app_id', str(module.params['app_id'])]
+                if str(module.params['app_id']) != str(tpl.get('app_id')):
+                    update_args += ['--app_id', str(module.params['app_id'])]
+                    changed = True
+
+            if not changed:
+                result['runtemplate'] = tpl
+                module.exit_json(**result)
+
             if module.check_mode:
                 result['changed'] = True
                 result['runtemplate'] = tpl
                 module.exit_json(**result)
+
             run_cli(module, update_args)
-            latest = run_cli(module, ['runtemplate', 'get', '--id', str(tpl['id'])])
+            latest = run_cli(module, ['run-template:get', '--id', str(tpl['id'])])
             result['changed'] = True
             result['runtemplate'] = latest
             module.exit_json(**result)
         else:
             # Create
-            create_args = ['runtemplate', 'create']
-            for field in ['name', 'company_id', 'company', 'active', 'interv', 'cron', 'executor', 'schedule_time']:
+            create_args = ['run-template:create']
+            for field in ['name', 'company_id', 'company', 'active', 'interv', 'cron', 'executor']:
                 val = module.params.get(field)
                 if val is not None:
                     create_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
@@ -267,16 +290,16 @@ def run_module():
                 create_args += ['--app_uuid', module.params['app_uuid']]
             elif module.params.get('app_id'):
                 create_args += ['--app_id', str(module.params['app_id'])]
-            if hasattr(module, '_verbosity') and module._verbosity >= 2:
-                module.warn(f"[DEBUG] Creating runtemplate with: {' '.join(create_args)}")
+
             if module.check_mode:
                 result['changed'] = True
                 result['runtemplate'] = None
                 module.exit_json(**result)
+
             created = run_cli(module, create_args)
             tpl_id = created.get('id')
             if tpl_id:
-                latest = run_cli(module, ['runtemplate', 'get', '--id', str(tpl_id)])
+                latest = run_cli(module, ['run-template:get', '--id', str(tpl_id)])
                 result['runtemplate'] = latest
             else:
                 result['runtemplate'] = created
@@ -286,7 +309,7 @@ def run_module():
     elif state == 'absent':
         tpl = find_existing_runtemplate(module)
         if tpl:
-            delete_args = ['runtemplate', 'delete', '--id', str(tpl['id'])]
+            delete_args = ['run-template:delete', '--id', str(tpl['id'])]
             if module.check_mode:
                 result['changed'] = True
                 result['runtemplate'] = tpl

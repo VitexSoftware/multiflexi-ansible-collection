@@ -103,17 +103,17 @@ def run_module():
 
     state = module.params['state']
     cli_path = module.params['multiflexi_cli_path']
-    cli_base = [cli_path, 'queue']
+    cli_base = [cli_path]
 
     try:
         if state == 'overview':
-            args = cli_base + ['--format', 'json']
+            args = cli_base + ['queue:overview', '--format', 'json']
             output = run_cli_command(args)
             result['queue'] = json.loads(output)
             result['msg'] = "Retrieved queue overview"
             
         elif state == 'list':
-            args = cli_base + ['list', '--format', 'json']
+            args = cli_base + ['queue:list', '--format', 'json']
             if module.params.get('limit'):
                 args.extend(['--limit', str(module.params['limit'])])
             if module.params.get('order'):
@@ -129,7 +129,7 @@ def run_module():
                 result['msg'] = "Would fix the job queue"
                 result['changed'] = True
             else:
-                args = cli_base + ['fix', '--format', 'json']
+                args = cli_base + ['queue:fix', '--format', 'json']
                 output = run_cli_command(args)
                 result['queue'] = json.loads(output)
                 result['changed'] = True
@@ -140,7 +140,7 @@ def run_module():
                 result['msg'] = "Would truncate the job queue"
                 result['changed'] = True
             else:
-                args = cli_base + ['truncate', '--format', 'json']
+                args = cli_base + ['queue:truncate', '--format', 'json']
                 output = run_cli_command(args)
                 result['queue'] = json.loads(output)
                 result['changed'] = True

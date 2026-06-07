@@ -12,7 +12,7 @@ short_description: Manage authentication tokens in MultiFlexi
 
 description:
     - This module allows you to manage authentication tokens in MultiFlexi.
-    - Supports listing, getting, creating, generating, and updating tokens.
+    - Supports listing, getting, creating, generating, updating and deleting tokens.
 
 author:
     - Vitex (@Vitexus)
@@ -74,6 +74,11 @@ EXAMPLES = """
     state: present
     token_id: 1
     token_value: "new-token-value"
+
+- name: Delete a token
+  token:
+    state: absent
+    token_id: 1
 """
 
 RETURN = """
@@ -116,11 +121,11 @@ def run_module():
 
     state = module.params['state']
     cli_path = module.params['multiflexi_cli_path']
-    cli_base = [cli_path, 'token']
+    cli_base = [cli_path]
 
     try:
         if state == 'list':
-            args = cli_base + ['list', '--format', 'json']
+            args = cli_base + ['token:list', '--format', 'json']
             output = run_cli_command(args)
             result['token'] = json.loads(output)
             result['msg'] = "Retrieved token list"
@@ -128,14 +133,19 @@ def run_module():
         elif state == 'present':
             if module.params.get('token_id'):
                 # Get existing token
-                args = cli_base + ['get', '--id', str(module.params['token_id']), '--format', 'json']
+                args = cli_base + ['token:get', '--id', str(module.params['token_id']), '--format', 'json']
                 output = run_cli_command(args)
                 existing_token = json.loads(output)
                 
                 if existing_token:
                     # Update existing token if token_value provided
-                    if module.params.get('token_value'):
-                        args = cli_base + ['update', '--id', str(module.params['token_id']), 
+                    if module.params.get('token_value') and existing_token.get('token') != module.params.get('token_value'):
+                        if module.check_mode:
+                            result['changed'] = True
+                            result['token'] = existing_token
+                            result['msg'] = f"Would update token {module.params['token_id']}"
+                            module.exit_json(**result)
+                        args = cli_base + ['token:update', '--id', str(module.params['token_id']),
                                          '--token', module.params['token_value'], '--format', 'json']
                         output = run_cli_command(args)
                         result['changed'] = True
@@ -143,8 +153,8 @@ def run_module():
                     else:
                         result['msg'] = f"Retrieved token {module.params['token_id']}"
                     
-                    # Get updated token
-                    args = cli_base + ['get', '--id', str(module.params['token_id']), '--format', 'json']
+                    # Get latest token info
+                    args = cli_base + ['token:get', '--id', str(module.params['token_id']), '--format', 'json']
                     output = run_cli_command(args)
                     result['token'] = json.loads(output)
                 else:
@@ -152,7 +162,12 @@ def run_module():
                     
             elif module.params.get('user_id'):
                 # Create new token for user
-                args = cli_base + ['create', '--user', str(module.params['user_id']), '--format', 'json']
+                # Check if it already exists? Tokens might not be unique per user but typically they are.
+                # CLI doesn't seem to have a way to find by user directly in one go easily without listing all.
+                if module.check_mode:
+                    result['changed'] = True
+                    module.exit_json(**result)
+                args = cli_base + ['token:create', '--user', str(module.params['user_id']), '--format', 'json']
                 if module.params.get('token_value'):
                     args.extend(['--token', module.params['token_value']])
                 output = run_cli_command(args)
@@ -166,14 +181,27 @@ def run_module():
             if not module.params.get('user_id'):
                 module.fail_json(msg="user_id is required for generate state")
             
-            args = cli_base + ['generate', '--user', str(module.params['user_id']), '--format', 'json']
+            if module.check_mode:
+                result['changed'] = True
+                module.exit_json(**result)
+            args = cli_base + ['token:generate', '--user', str(module.params['user_id']), '--format', 'json']
             output = run_cli_command(args)
             result['token'] = json.loads(output)
             result['changed'] = True
             result['msg'] = f"Generated new token for user {module.params['user_id']}"
             
         elif state == 'absent':
-            module.fail_json(msg="Token deletion is not supported by the CLI")
+            if not module.params.get('token_id'):
+                module.fail_json(msg="token_id is required for absent state")
+
+            if module.check_mode:
+                result['changed'] = True
+                module.exit_json(**result)
+
+            args = cli_base + ['token:delete', '--id', str(module.params['token_id']), '--format', 'json']
+            output = run_cli_command(args)
+            result['changed'] = True
+            result['msg'] = f"Deleted token {module.params['token_id']}"
             
     except Exception as e:
         module.fail_json(msg=str(e))
