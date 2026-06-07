@@ -189,11 +189,11 @@ def run_module():
 
     state = module.params['state']
     cli_path = module.params['multiflexi_cli_path']
-    cli_base = [cli_path, 'eventsource']
+    cli_base = [cli_path]
 
     try:
         if state == 'list':
-            args = cli_base + ['list', '--format', 'json']
+            args = cli_base + ['event-source:list', '--format', 'json']
             if module.params.get('limit'):
                 args.extend(['--limit', str(module.params['limit'])])
             if module.params.get('order'):
@@ -205,37 +205,49 @@ def run_module():
         elif state == 'present':
             if module.params.get('eventsource_id'):
                 # Get existing event source
-                args = cli_base + ['get', '--id', str(module.params['eventsource_id']), '--format', 'json']
+                args = cli_base + ['event-source:get', '--id', str(module.params['eventsource_id']), '--format', 'json']
                 output = run_cli_command(args)
-                result['eventsource'] = json.loads(output)
+                existing = json.loads(output)
+                result['eventsource'] = existing
                 result['msg'] = f"Retrieved event source {module.params['eventsource_id']}"
 
                 # Update if any fields provided
-                update_args = cli_base + ['update', '--id', str(module.params['eventsource_id'])]
+                update_args = cli_base + ['event-source:update', '--id', str(module.params['eventsource_id'])]
                 has_updates = False
                 for field in ['name', 'adapter_type', 'db_connection', 'db_host', 'db_port',
                               'db_database', 'db_username', 'db_password']:
-                    if module.params.get(field):
-                        update_args.extend([f'--{field}', str(module.params[field])])
+                    val = module.params.get(field)
+                    if val is not None and str(val) != str(existing.get(field)):
+                        update_args.extend([f'--{field}', str(val)])
                         has_updates = True
-                if module.params.get('poll_interval') != 60:
-                    update_args.extend(['--poll_interval', str(module.params['poll_interval'])])
+
+                poll_interval = module.params.get('poll_interval')
+                if poll_interval is not None and str(poll_interval) != str(existing.get('poll_interval')):
+                    update_args.extend(['--poll_interval', str(poll_interval)])
                     has_updates = True
+
+                enabled = module.params.get('enabled')
+                if enabled is not None:
+                    existing_enabled = existing.get('enabled')
+                    if str(int(enabled)) != str(existing_enabled):
+                        update_args.extend(['--enabled', '1' if enabled else '0'])
+                        has_updates = True
 
                 if has_updates:
                     if module.check_mode:
                         result['msg'] = f"Would update event source {module.params['eventsource_id']}"
                         result['changed'] = True
-                    else:
-                        update_args.extend(['--format', 'json'])
-                        run_cli_command(update_args)
-                        result['changed'] = True
-                        result['msg'] = f"Updated event source {module.params['eventsource_id']}"
+                        module.exit_json(**result)
 
-                        # Get updated record
-                        args = cli_base + ['get', '--id', str(module.params['eventsource_id']), '--format', 'json']
-                        output = run_cli_command(args)
-                        result['eventsource'] = json.loads(output)
+                    update_args.extend(['--format', 'json'])
+                    run_cli_command(update_args)
+                    result['changed'] = True
+                    result['msg'] = f"Updated event source {module.params['eventsource_id']}"
+
+                    # Get updated record
+                    args = cli_base + ['event-source:get', '--id', str(module.params['eventsource_id']), '--format', 'json']
+                    output = run_cli_command(args)
+                    result['eventsource'] = json.loads(output)
             else:
                 # Create new event source
                 if not module.params.get('name'):
@@ -244,44 +256,57 @@ def run_module():
                 if module.check_mode:
                     result['msg'] = f"Would create event source '{module.params['name']}'"
                     result['changed'] = True
-                else:
-                    create_args = cli_base + ['create',
-                        '--name', module.params['name'],
-                        '--db_connection', module.params.get('db_connection', 'mysql'),
-                        '--db_host', module.params.get('db_host', 'localhost'),
-                        '--db_port', module.params.get('db_port', '3306'),
-                        '--poll_interval', str(module.params.get('poll_interval', 60)),
-                        '--enabled', '1' if module.params.get('enabled', True) else '0',
-                        '--format', 'json',
-                    ]
-                    for field in ['adapter_type', 'db_database', 'db_username', 'db_password']:
-                        if module.params.get(field):
-                            create_args.extend([f'--{field}', str(module.params[field])])
+                    module.exit_json(**result)
 
-                    output = run_cli_command(create_args)
-                    result['eventsource'] = json.loads(output)
-                    result['changed'] = True
-                    result['msg'] = "Event source created"
+                create_args = cli_base + ['event-source:create',
+                    '--name', module.params['name'],
+                    '--db_connection', module.params.get('db_connection', 'mysql'),
+                    '--db_host', module.params.get('db_host', 'localhost'),
+                    '--db_port', str(module.params.get('db_port', '3306')),
+                    '--poll_interval', str(module.params.get('poll_interval', 60)),
+                    '--enabled', '1' if module.params.get('enabled', True) else '0',
+                    '--format', 'json',
+                ]
+                for field in ['adapter_type', 'db_database', 'db_username', 'db_password']:
+                    if module.params.get(field):
+                        create_args.extend([f'--{field}', str(module.params[field])])
+
+                output = run_cli_command(create_args)
+                result['eventsource'] = json.loads(output)
+                result['changed'] = True
+                result['msg'] = "Event source created"
 
         elif state == 'absent':
             if not module.params.get('eventsource_id'):
                 module.fail_json(msg="eventsource_id is required for absent state")
 
+            # Check if exists
+            args = cli_base + ['event-source:get', '--id', str(module.params['eventsource_id']), '--format', 'json']
+            try:
+                output = run_cli_command(args)
+                existing = json.loads(output)
+                if existing.get('status') == 'not found':
+                     result['changed'] = False
+                     module.exit_json(**result)
+            except Exception:
+                result['changed'] = False
+                module.exit_json(**result)
+
             if module.check_mode:
                 result['msg'] = f"Would remove event source {module.params['eventsource_id']}"
                 result['changed'] = True
-            else:
-                args = cli_base + ['remove', '--id', str(module.params['eventsource_id']), '--format', 'json']
-                output = run_cli_command(args)
-                result['eventsource'] = json.loads(output)
-                result['changed'] = True
-                result['msg'] = f"Removed event source {module.params['eventsource_id']}"
+                module.exit_json(**result)
+
+            args = cli_base + ['event-source:remove', '--id', str(module.params['eventsource_id']), '--format', 'json']
+            run_cli_command(args)
+            result['changed'] = True
+            result['msg'] = f"Removed event source {module.params['eventsource_id']}"
 
         elif state == 'test':
             if not module.params.get('eventsource_id'):
                 module.fail_json(msg="eventsource_id is required for test state")
 
-            args = cli_base + ['test', '--id', str(module.params['eventsource_id']), '--format', 'json']
+            args = cli_base + ['event-source:test', '--id', str(module.params['eventsource_id']), '--format', 'json']
             output = run_cli_command(args)
             result['eventsource'] = json.loads(output)
             result['msg'] = "Connection test completed"

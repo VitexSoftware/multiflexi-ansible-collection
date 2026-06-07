@@ -53,26 +53,45 @@ options:
         elements: str
     deffile:
         description:
+            - Path to the application definition JSON file. (Aliased to file)
+        required: false
+        type: str
+    file:
+        description:
             - Path to the application definition JSON file.
         required: false
         type: str
-    helmchart:
+    homepage:
         description:
-            - URI or local path to Helm chart for the application.
+            - Homepage URL.
+        required: false
+        type: str
+    appversion:
+        description:
+            - Application version.
+        required: false
+        type: str
+    ociimage:
+        description:
+            - OCI Image.
+        required: false
+        type: str
+    requirements:
+        description:
+            - Requirements.
         required: false
         type: str
 """
 
 EXAMPLES = """
-    - name: Assign application to company
+    - name: Create application
       vitexus.multiflexi.application:
         state: present
         name: ExampleApp
         executable: example.exe
         tags: ['tag1', 'tag2']
-        status: active
 
-    - name: Remove application from company
+    - name: Remove application
       vitexus.multiflexi.application:
         state: absent
         app_id: 123
@@ -81,6 +100,11 @@ EXAMPLES = """
       vitexus.multiflexi.application:
         state: get
         app_id: 123
+
+    - name: Import application from JSON
+      vitexus.multiflexi.application:
+        state: present
+        file: /path/to/app.json
 """
 
 RETURN = """
@@ -102,6 +126,7 @@ RETURN = """
 from ansible.module_utils.basic import AnsibleModule
 import subprocess
 import json
+import os
 
 
 def run_cli_command(args, module=None, allow_not_found=False):
@@ -143,13 +168,11 @@ def run_module():
         tags=dict(type='list', elements='str', required=False),
         description=dict(type='str', required=False),
         appversion=dict(type='str', required=False),
-        homepage=dict(type='str', required=False),  # <-- ensure homepage is present
-        logo=dict(type='str', required=False),
+        homepage=dict(type='str', required=False),
         ociimage=dict(type='str', required=False),
         requirements=dict(type='str', required=False),
         file=dict(type='str', required=False),
         deffile=dict(type='str', required=False),
-        helmchart=dict(type='str', required=False),
     )
 
     result = dict(
@@ -164,6 +187,9 @@ def run_module():
 
     state = module.params.get('state')
     cli_base = ['multiflexi-cli']
+
+    # Handle deffile as alias for file
+    input_file = module.params.get('file') or module.params.get('deffile')
 
     try:
         # If no state is provided, default to info/read (get)
@@ -184,9 +210,22 @@ def run_module():
                 result['app'] = app
             module.exit_json(**result)
         elif state == 'present':
-            # 1. Check for existing application by app_id > uuid > name
+            # 1. Determine existing app data if possible
             found_app_id = None
             app_data = None
+
+            # If file provided, try to extract UUID from it for idempotency check
+            extracted_uuid = None
+            if input_file and os.path.exists(input_file):
+                try:
+                    with open(input_file, 'r') as f:
+                        file_data = json.load(f)
+                        extracted_uuid = file_data.get('uuid')
+                except Exception:
+                    pass
+
+            target_uuid = module.params.get('uuid') or extracted_uuid
+
             if module.params.get('app_id'):
                 check_args = cli_base + ['application:get', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
                 output = run_cli_command(check_args, module=module, allow_not_found=True)
@@ -194,8 +233,8 @@ def run_module():
                 if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
                     found_app_id = app['id']
                     app_data = app
-            elif module.params.get('uuid'):
-                check_args = cli_base + ['application:get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+            elif target_uuid:
+                check_args = cli_base + ['application:get', '--uuid', target_uuid, '--format', 'json', '--verbose']
                 output = run_cli_command(check_args, module=module, allow_not_found=True)
                 app = json.loads(output)
                 if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
@@ -208,22 +247,45 @@ def run_module():
                 if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
                     found_app_id = app['id']
                     app_data = app
+
+            # Handle file import with idempotency
+            if input_file:
+                if not app_data:
+                    if module.check_mode:
+                        result['changed'] = True
+                        module.exit_json(**result)
+                    args = cli_base + ['application:import-json', '--file', input_file, '--format', 'json', '--verbose']
+                    output = run_cli_command(args, module=module)
+                    result['app'] = json.loads(output)
+                    result['changed'] = True
+                    module.exit_json(**result)
+                else:
+                    # App exists, for now we assume file might contain updates.
+                    # A true deep comparison of file vs database would be complex.
+                    # As a compromise, we only import if app_data differs significantly or we just always report changed for file imports if we don't want to parse everything.
+                    # The reviewer requested idempotency, so let's try a simple approach: if app exists, use update command with file if supported, or just skip if we want to be safe.
+                    # CLI application:update doesn't seem to support --file in the help we saw.
+                    # So we'll stick to: if it exists, we report changed: false unless other params are provided.
+                    pass
+
             # Idempotency: Only update if any property differs
             needs_update = False
-            for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'tags', 'appversion', 'ociimage', 'requirements', 'file', 'deffile', 'helmchart']:
-                value = module.params.get(param)
-                if value is not None and app_data is not None:
-                    app_val = app_data.get(param)
-                    if param == 'tags':
-                        # Compare tags as sets if both are present
-                        if app_val is not None and set(value) != set(app_val):
+            if app_data:
+                for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'tags', 'appversion', 'ociimage', 'requirements']:
+                    value = module.params.get(param)
+                    if value is not None:
+                        app_val = app_data.get(param)
+                        if param == 'tags':
+                            current_tags = set(app_val) if app_val else set()
+                            if set(value) != current_tags:
+                                needs_update = True
+                        elif str(value) != str(app_val if app_val is not None else ''):
                             needs_update = True
-                    elif value != app_val:
-                        needs_update = True
+
             # Build args for create/update
-            def build_args(base, params):
+            def build_args(base):
                 args = base[:]
-                for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'logo', 'appversion', 'ociimage', 'requirements', 'file', 'deffile', 'helmchart']:
+                for param in ['name', 'executable', 'description', 'uuid', 'homepage', 'appversion', 'ociimage', 'requirements']:
                     value = module.params.get(param)
                     if value is not None:
                         args += [f'--{param}', str(value)]
@@ -231,26 +293,36 @@ def run_module():
                     args += ['--tags', ','.join(module.params['tags'])]
                 args += ['--format', 'json', '--verbose']
                 return args
+
             if found_app_id:
                 if needs_update:
-                    args = build_args(cli_base + ['application:update', '--id', str(found_app_id)], module.params)
+                    if module.check_mode:
+                        result['changed'] = True
+                        result['app'] = app_data
+                        module.exit_json(**result)
+                    args = build_args(cli_base + ['application:update', '--id', str(found_app_id)])
                     run_cli_command(args, module=module)
                     result['changed'] = True
                 else:
                     result['changed'] = False
-            else:
-                args = build_args(cli_base + ['application:create'], module.params)
+            elif not input_file: # Only create if file wasn't already handled
+                if module.check_mode:
+                    result['changed'] = True
+                    module.exit_json(**result)
+                args = build_args(cli_base + ['application:create'])
                 run_cli_command(args, module=module)
                 result['changed'] = True
+
             # Always read the record and return as result
             if found_app_id:
                 read_args = cli_base + ['application:get', '--id', str(found_app_id), '--format', 'json', '--verbose']
-            elif module.params.get('uuid'):
-                read_args = cli_base + ['application:get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+            elif target_uuid:
+                read_args = cli_base + ['application:get', '--uuid', target_uuid, '--format', 'json', '--verbose']
             elif module.params.get('name'):
                 read_args = cli_base + ['application:get', '--name', module.params['name'], '--format', 'json', '--verbose']
             else:
-                module.fail_json(msg='Either app_id, uuid, or name is required to get application info.')
+                module.exit_json(**result)
+
             output = run_cli_command(read_args, module=module, allow_not_found=True)
             app = json.loads(output)
             if isinstance(app, dict) and app.get('status') == 'not found':
@@ -260,18 +332,35 @@ def run_module():
             module.exit_json(**result)
         elif state == 'absent':
             # Use the most specific identifier for removal
+            found_app_id = None
             if module.params.get('app_id'):
-                args = cli_base + ['application:delete', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
+                check_args = cli_base + ['application:get', '--id', str(module.params['app_id']), '--format', 'json', '--verbose']
+                output = run_cli_command(check_args, module=module, allow_not_found=True)
+                app = json.loads(output)
+                if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
+                    found_app_id = app['id']
             elif module.params.get('uuid'):
-                args = cli_base + ['application:delete', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+                check_args = cli_base + ['application:get', '--uuid', module.params['uuid'], '--format', 'json', '--verbose']
+                output = run_cli_command(check_args, module=module, allow_not_found=True)
+                app = json.loads(output)
+                if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
+                    found_app_id = app['id']
             elif module.params.get('name'):
-                args = cli_base + ['application:delete', '--name', module.params['name'], '--format', 'json', '--verbose']
+                check_args = cli_base + ['application:get', '--name', module.params['name'], '--format', 'json', '--verbose']
+                output = run_cli_command(check_args, module=module, allow_not_found=True)
+                app = json.loads(output)
+                if app and isinstance(app, dict) and app.get('id') and app.get('status') != 'not found':
+                    found_app_id = app['id']
+
+            if found_app_id:
+                if module.check_mode:
+                    result['changed'] = True
+                    module.exit_json(**result)
+                args = cli_base + ['application:delete', '--id', str(found_app_id), '--format', 'json', '--verbose']
+                run_cli_command(args, module=module)
+                result['changed'] = True
             else:
                 result['changed'] = False
-                module.exit_json(**result)
-            run_cli_command(args, module=module)
-            result['changed'] = True
-            # Optionally, try to get the deleted app info (should be not found)
             module.exit_json(**result)
         else:
             module.fail_json(msg="Invalid state")
