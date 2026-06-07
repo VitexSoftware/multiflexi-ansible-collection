@@ -1,0 +1,6 @@
+{
+    "ANSIBLE_MODULE_ARGS": {
+        "code": "TEST",
+	"state": "absent"
+    }
+}

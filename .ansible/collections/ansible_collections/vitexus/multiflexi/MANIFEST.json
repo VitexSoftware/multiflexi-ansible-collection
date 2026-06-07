@@ -1,0 +1,37 @@
+{
+ "collection_info": {
+  "namespace": "vitexus",
+  "name": "multiflexi",
+  "version": "1.3.0",
+  "authors": [
+   "V\u00edt\u011bzslav Dvo\u0159\u00e1k <vitex@vitexsoftware.com>"
+  ],
+  "readme": "README.md",
+  "tags": [
+   "application",
+   "multiflexi",
+   "server",
+   "flexibee",
+   "accounting",
+   "erp"
+  ],
+  "description": "This is a collection of roles for managing a MultiFlexi server",
+  "license": [
+   "MIT"
+  ],
+  "license_file": null,
+  "dependencies": {},
+  "repository": "https://github.com/VitexSoftware/multiflexi-ansible-collection",
+  "documentation": "http://docs.vitexsoftware.cz/multiflexi-ansible-collection/",
+  "homepage": "http://multiflexi.eu/",
+  "issues": "https://github.com/VitexSoftware/multiflexi-ansible-collection/issues"
+ },
+ "file_manifest_file": {
+  "name": "FILES.json",
+  "ftype": "file",
+  "chksum_type": "sha256",
+  "chksum_sha256": "eb6b57b7b612954c1d6f487fa81bb5a526ee20845fb830233d393ec71bddcd17",
+  "format": 1
+ },
+ "format": 1
+}
