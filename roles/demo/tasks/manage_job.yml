@@ -1,8 +1,17 @@
 ---
+- name: Check if any runtemplates were created
+  ansible.builtin.set_fact:
+    created_runtemplates: "{{ runtemplate_results.results | selectattr('runtemplate', 'defined') | selectattr('runtemplate', 'ne', None) | map(attribute='runtemplate') | list }}"
+
+- name: Fail if no runtemplates are available for scheduling
+  ansible.builtin.fail:
+    msg: "No runtemplates were created or found. Cannot schedule a demo job."
+  when: created_runtemplates | length == 0
+
 - name: Schedule a demo job for the first available runtemplate
   vitexus.multiflexi.job:
     state: present
-    runtemplate_id: "{{ runtemplate_results.results | selectattr('runtemplate', 'defined') | map(attribute='runtemplate.id') | first }}"
+    runtemplate_id: "{{ created_runtemplates[0].id }}"
     scheduled: "{{ scheduled | default('now') }}"
     executor: "{{ executor | default('native') }}"
   become: true
