@@ -90,7 +90,7 @@ EXAMPLES = """
 - name: Create run template
   vitexus.multiflexi.runtemplate:
     state: present
-    name: "Demo Template"
+    name: "demo_Test"
     app_uuid: "78fa718c-7ca2-4a38-840e-8e5f0db06432"
     company: "DEMO"
     active: true
@@ -99,8 +99,7 @@ EXAMPLES = """
 - name: Get run template
   vitexus.multiflexi.runtemplate:
     state: get
-    name: "Demo Template"
-    company: "DEMO"
+    name: "demo_Test"
 
 # Delete a run template
 - name: Delete run template
@@ -117,7 +116,7 @@ runtemplate:
     sample:
         {
             "id": 1,
-            "name": "Demo Template",
+            "name": "demo_Test",
             "app_id": 1,
             "company_id": 1,
             "active": true
@@ -160,7 +159,8 @@ def run_cli(module, args):
 
 
 def find_existing_runtemplate(module):
-    # Priority: runtemplate_id > (name + company/company_id)
+    # Priority: runtemplate_id > name
+    # NOTE: run-template:get in multiflexi-cli 2.5.6 only supports --id and --name
     if module.params.get('runtemplate_id'):
         res = run_cli(module, ['run-template:get', '--id', str(module.params['runtemplate_id'])])
         if isinstance(res, dict) and res.get('id'):
@@ -168,17 +168,23 @@ def find_existing_runtemplate(module):
         if isinstance(res, dict) and res.get('_not_found'):
             return None
     elif module.params.get('name'):
-        args = ['run-template:get', '--name', module.params['name']]
-        # Add company or company_id if provided
-        if module.params.get('company'):
-            args += ['--company', module.params['company']]
-        elif module.params.get('company_id'):
-            args += ['--company_id', str(module.params['company_id'])]
-        res = run_cli(module, args)
+        res = run_cli(module, ['run-template:get', '--name', module.params['name']])
         if isinstance(res, dict) and res.get('id'):
             return res
         if isinstance(res, dict) and res.get('_not_found'):
             return None
+        # If it returns a list, filter by company if provided
+        if isinstance(res, list):
+            for tpl in res:
+                if module.params.get('company'):
+                    # tpl might have company_id or company slug
+                    if str(tpl.get('company_id')) == str(module.params['company']) or tpl.get('company_slug') == module.params['company']:
+                         return tpl
+                elif module.params.get('company_id'):
+                    if str(tpl.get('company_id')) == str(module.params['company_id']):
+                        return tpl
+                else:
+                    return tpl # Return first match if no company filter
     return None
 
 
@@ -235,17 +241,14 @@ def run_module():
                     current_val = tpl.get(field)
                     if isinstance(val, bool):
                         current_val = bool(current_val)
-                    if str(val) != str(current_val):
+                    if str(val) != str(current_val if current_val is not None else ''):
                         update_args += [f'--{field}', str(int(val)) if isinstance(val, bool) else str(val)]
                         changed = True
             
             # Handle config dictionary
             if module.params.get('config'):
-                # CLI config is repeatable key=value
                 for k, v in module.params['config'].items():
                     update_args += ['--config', f'{k}={v}']
-                # We assume any config provided means we want to set it.
-                # For proper idempotency we should compare with existing config, but it's returned flat.
                 changed = True
 
             # Prefer app_uuid over app_id if provided
@@ -297,7 +300,14 @@ def run_module():
                 module.exit_json(**result)
 
             created = run_cli(module, create_args)
-            tpl_id = created.get('id')
+
+            # If created is a list (unlikely for create but good to handle), pick the matching one
+            tpl_id = None
+            if isinstance(created, dict):
+                tpl_id = created.get('id')
+            elif isinstance(created, list) and len(created) > 0:
+                tpl_id = created[0].get('id')
+
             if tpl_id:
                 latest = run_cli(module, ['run-template:get', '--id', str(tpl_id)])
                 result['runtemplate'] = latest
