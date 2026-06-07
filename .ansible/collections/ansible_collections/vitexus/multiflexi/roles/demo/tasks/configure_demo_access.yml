@@ -1,0 +1,21 @@
+---
+- name: Make demo user an administrator
+  vitexus.multiflexi.user_role:
+    login: "demo"
+    roles: ["admin"]
+    replace: true
+  become: true
+  register: user_role_result
+
+- name: Assign demo user to demo company
+  vitexus.multiflexi.user_company:
+    state: present
+    login: "demo"
+    company_id: "{{ company_info_result.company.id }}"
+    role: "admin"
+  become: true
+  register: user_company_result
+
+- name: Show assignment results
+  ansible.builtin.debug:
+    msg: "User roles: {{ user_role_result.roles }}, Company assignment: {{ user_company_result.assignment }}"

@@ -1,0 +1,60 @@
+name: Publish Ansible Collection to Galaxy
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Ansible Core
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core
+
+      - name: Show Ansible and Galaxy versions
+        run: |
+          ansible --version
+          ansible-galaxy --version
+
+      - name: Build collection artifact
+        run: ansible-galaxy collection build --force
+
+      - name: List built artifact
+        run: ls -alh *.tar.gz || true
+
+      - name: Publish to Ansible Galaxy
+        env:
+          ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
+        run: |
+          set -euo pipefail
+          ARTIFACT=$(ls -1t *.tar.gz | head -n1)
+          if [ -z "$ARTIFACT" ]; then echo "No artifact found after build"; exit 1; fi
+          if [ -z "${ANSIBLE_GALAXY_API_KEY:-}" ]; then echo "Secret ANSIBLE_GALAXY_API_KEY not set"; exit 1; fi
+          echo "Publishing $ARTIFACT to Galaxy..."
+          ansible-galaxy collection publish "$ARTIFACT" --token "$ANSIBLE_GALAXY_API_KEY"
+
+      - name: Upload artifact to workflow (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-tarball
+          path: |
+            *.tar.gz
+          if-no-files-found: warn
