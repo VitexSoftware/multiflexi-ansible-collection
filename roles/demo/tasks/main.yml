@@ -1,4 +1,10 @@
 ---
+- name: Configure VitexSoftware APT repository
+  ansible.builtin.import_role:
+    name: multiflexi_server
+    tasks_from: apt
+  tags: [always]
+
 - name: Ensure the MultiFlexi is installed
   vitexus.multiflexi.multiflexi_info:
   register: multiflexi_info

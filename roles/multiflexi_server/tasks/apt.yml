@@ -5,12 +5,14 @@
     dest: /usr/share/keyrings/vitexsoftware-archive-keyring.gpg
     mode: "0644"
   become: true
+  tags: [always]
 
 - name: Ensure the gpg binary is installed
   ansible.builtin.apt:
     name: gnupg
     state: present
   become: true
+  tags: [always]
 
 - name: Add VitexSoftware repo for {{ ansible_distribution_release }}
   ansible.builtin.apt_repository:
@@ -18,3 +20,19 @@
     state: present
     filename: vitexsoftware
   become: true
+  tags: [always]
+
+- name: Refresh APT cache after adding VitexSoftware repository
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  tags: [always]
+
+- name: Upgrade MultiFlexi database migration packages
+  ansible.builtin.apt:
+    name:
+      - multiflexi-migrations
+      - "multiflexi-{{ multiflexi_server_database_type }}"
+    state: latest
+  become: true
+  tags: [always]

@@ -7,7 +7,7 @@
 - name: Install MultiFlexi multi package
   ansible.builtin.apt:
     name: "multiflexi-{{ multiflexi_server_database_type }}"
-    state: present
+    state: latest
   become: true
   tags: ['multiflexi']
 

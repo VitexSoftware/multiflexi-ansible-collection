@@ -19,7 +19,11 @@ The package installation step mirrors the logic from the `multiflexi-all` projec
 
 **Blocked:** `multiflexi-pohoda-client-config`, `php-vitexsoftware-multiflexi-core`, `php-vitexsoftware-multiflexi-core-dev`, `php-vitexsoftware-multiflexi-server`, `php-vitexsoftware-multiflexi-server-dev`
 
-New packages published to the repository are picked up automatically without any changes to the role.
+**Regional bundles:** `multiflexi-eu`
+
+**Conflicting or optional testing stacks:** `multiflexi-docker` (conflicts with `multiflexi-executor-docker`), `multiflexi-zabbix-selenium` (Selenium testing; not installed by default)
+
+The skiplist is defined in `defaults/main.yml` as `demo_package_skiplist` and can be extended in your playbook. New packages published to the repository are picked up automatically without any changes to the role.
 
 ## Requirements
 
@@ -31,6 +35,7 @@ New packages published to the repository are picked up automatically without any
 
 The role uses default values but can be customized:
 
+- `demo_package_skiplist`: Package names excluded from bulk install (see `defaults/main.yml`)
 - `demo_company_id`: Company identifier (default: "DEMO")
 - `demo_app_id`: Application UUID (default: "78fa718c-7ca2-4a38-840e-8e5f0db06432")
 - `scheduled`: Job scheduling (default: "now")
@@ -38,7 +43,7 @@ The role uses default values but can be customized:
 
 ## Dependencies
 
-None
+- `multiflexi_server` APT tasks (`tasks/apt.yml`) are imported automatically before package installation to configure the VitexSoftware repository and upgrade `multiflexi-migrations`.
 
 ## Example Playbook
 

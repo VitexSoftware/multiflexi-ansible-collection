@@ -1,24 +1,17 @@
 ---
-- name: Discover available MultiFlexi packages (excluding skiplist)
+- name: Discover available MultiFlexi packages
   ansible.builtin.shell:
-    cmd: |
-      apt-cache -q search multiflexi | awk '{print $1}' | grep -vwF \
-        -e multiflexi-all \
-        -e multiflexi-mysql \
-        -e multiflexi-pgsql \
-        -e multiflexi-sqlite \
-        -e multiflexi-podman \
-        -e multiflexi-pohoda-client-config \
-        -e php-vitexsoftware-multiflexi-core \
-        -e php-vitexsoftware-multiflexi-core-dev \
-        -e php-vitexsoftware-multiflexi-server \
-        -e php-vitexsoftware-multiflexi-server-dev
-  register: multiflexi_packages
+    cmd: apt-cache -q search multiflexi | awk '{print $1}'
+  register: multiflexi_packages_discovered
   changed_when: false
+
+- name: Apply package skiplist
+  ansible.builtin.set_fact:
+    multiflexi_packages_to_install: "{{ multiflexi_packages_discovered.stdout_lines | difference(demo_package_skiplist) | sort }}"
 
 - name: Install all available MultiFlexi packages
   ansible.builtin.apt:
-    name: "{{ multiflexi_packages.stdout_lines }}"
+    name: "{{ multiflexi_packages_to_install }}"
     state: present
   become: true
   tags: ['demo', 'packages']

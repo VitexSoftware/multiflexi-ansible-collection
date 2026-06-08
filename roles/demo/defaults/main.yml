@@ -1,0 +1,26 @@
+---
+# Packages excluded from the demo bulk-install step.
+demo_package_skiplist:
+  # Infrastructure / database backends (installed by multiflexi_server)
+  - multiflexi-all
+  - multiflexi-mysql
+  - multiflexi-pgsql
+  - multiflexi-sqlite
+  - multiflexi-podman
+  # Blocked or unsuitable for automated demo installs
+  - multiflexi-pohoda-client-config
+  - php-vitexsoftware-multiflexi-core
+  - php-vitexsoftware-multiflexi-core-dev
+  - php-vitexsoftware-multiflexi-server
+  - php-vitexsoftware-multiflexi-server-dev
+  # Regional / alternate distribution bundles
+  - multiflexi-eu
+  - multiflexi-eu-sqlite
+  - multiflexi-eu-mysql
+  - multiflexi-eu-pgsql
+  # Legacy docker executor; conflicts with multiflexi-executor-docker
+  - multiflexi-docker
+  # Selenium/Zabbix testing stack; optional deps not available on all hosts
+  - multiflexi-zabbix-selenium
+  - multiflexi-abraflexi-client-check
+  

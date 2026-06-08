@@ -19,5 +19,13 @@
     app_uuid: "{{ (item.content | b64decode | from_json).uuid }}"
     company: "{{ demo_company_id | default('DEMO') }}"
   loop: "{{ app_manifest_contents.results }}"
+  # Skip empty or malformed manifests (e.g. a package shipping a 0-byte
+  # *.app.json) and any that lack the fields needed for a runtemplate.
+  # The `and` short-circuits so from_json is only evaluated once the
+  # content is known to be a non-empty JSON object.
+  when: >-
+    (item.content | b64decode | trim) is search('^\s*\{')
+    and (item.content | b64decode | from_json).uuid is defined
+    and (item.content | b64decode | from_json).name.en is defined
   become: true
   register: runtemplate_results

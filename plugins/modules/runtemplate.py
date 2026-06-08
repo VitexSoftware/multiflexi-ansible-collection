@@ -233,8 +233,10 @@ def run_module():
             update_args = ['run-template:update', '--id', str(tpl['id'])]
             changed = False
 
-            # Simple fields
-            for field in ['name', 'company_id', 'company', 'active', 'interv', 'cron', 'executor']:
+            # Simple fields. NOTE: run-template:update only accepts --company_id,
+            # not --company (unlike run-template:create), so 'company' is omitted
+            # here to avoid "The --company option does not exist" CLI errors.
+            for field in ['name', 'company_id', 'active', 'interv', 'cron', 'executor']:
                 val = module.params.get(field)
                 if val is not None:
                     # Compare
