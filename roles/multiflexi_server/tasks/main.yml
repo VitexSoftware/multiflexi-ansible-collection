@@ -24,3 +24,8 @@
   ansible.builtin.include_tasks:
     file: tasks/zabbix.yml
   when: multiflexi_server_zabbix_host is not none and multiflexi_server_zabbix_host | length > 0
+
+- name: Configure MultiFlexi Node-RED integration
+  ansible.builtin.include_tasks:
+    file: tasks/nodered.yml
+  when: multiflexi_server_nodered_enabled | bool

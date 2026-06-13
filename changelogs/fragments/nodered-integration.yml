@@ -1,0 +1,2 @@
+minor_changes:
+  - multiflexi_server role - add optional Node-RED integration. When ``multiflexi_server_nodered_enabled`` is true the role installs Node-RED, ``node-red-contrib-multiflexi`` and ``multiflexi-eventor``, seeds a flow with a ``multiflexi-catalog`` node, wires the catalog feed (``NODERED_CATALOG_URL``) and shows Node-RED in the MultiFlexi web Integrations menu (``NODERED_ENABLED`` / ``NODERED_URL``).

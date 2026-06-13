@@ -57,12 +57,32 @@ Defaults are defined in `defaults/main.yml`.
   - Default: `null`
   - Zabbix server address (reserved for future tasks/integration points).
 
+- `multiflexi_server_nodered_enabled` (bool | optional)
+  - Default: `false`
+  - When `true`, installs Node-RED + `node-red-contrib-multiflexi` + `multiflexi-eventor`,
+    seeds a flow with a `multiflexi-catalog` node, wires the catalog feed and shows Node-RED
+    in the MultiFlexi web Integrations menu.
+
+- `multiflexi_server_nodered_url` (string | optional)
+  - Default: `http://{{ ansible_fqdn }}:1880/`
+  - Node-RED editor URL linked from the Integrations menu.
+
+- `multiflexi_server_nodered_app_url` (string | optional)
+  - Default: `/multiflexi/`
+  - Base URL of the MultiFlexi web image endpoints the catalog node fetches icons from.
+
+- Other Node-RED knobs: `multiflexi_server_nodered_catalog_url`,
+  `multiflexi_server_nodered_catalog_path`, `multiflexi_server_nodered_user`,
+  `multiflexi_server_nodered_userdir`, `multiflexi_server_nodered_seed_flow`.
+
 Behavior Notes
 --------------
 
 - Database tasks include `mysql.yml` when the effective DB type equals `mysql`.
 - Package tasks use the effective DB type to install `multiflexi-<db>` and related components.
 - Effective DB type is simply `multiflexi_server_database_type`.
+- The Node-RED Integrations menu entry also needs a `multiflexi-web` build that includes the
+  feature (it renders `NODERED_ENABLED`/`NODERED_URL`); reaching demo via `apt`.
 
 Example Playbook
 ----------------

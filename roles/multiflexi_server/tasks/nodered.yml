@@ -1,0 +1,88 @@
+---
+# Install Node-RED and integrate it with MultiFlexi:
+#  - node-red + node-red-contrib-multiflexi (ships the NODE_PATH systemd drop-in
+#    and the writable icon cache) + multiflexi-eventor (pushes the catalog);
+#  - seed a flow with a multiflexi-catalog node so the daemon has somewhere to
+#    POST the catalog;
+#  - set the env vars that wire the feed and show Node-RED in the web
+#    Integrations menu.
+
+- name: Install Node-RED, the MultiFlexi contrib nodes and the event processor
+  ansible.builtin.apt:
+    name:
+      - node-red
+      - node-red-contrib-multiflexi
+      - multiflexi-eventor
+    state: present
+  become: true
+  tags: ['multiflexi', 'nodered']
+
+- name: Ensure the Node-RED user directory exists
+  ansible.builtin.file:
+    path: "{{ multiflexi_server_nodered_userdir }}"
+    state: directory
+    owner: "{{ multiflexi_server_nodered_user }}"
+    group: "{{ multiflexi_server_nodered_user }}"
+    mode: "0750"
+  become: true
+  tags: ['multiflexi', 'nodered']
+
+- name: Seed the Node-RED catalog flow
+  ansible.builtin.template:
+    src: nodered-flows.json.j2
+    dest: "{{ multiflexi_server_nodered_userdir }}/flows.json"
+    owner: "{{ multiflexi_server_nodered_user }}"
+    group: "{{ multiflexi_server_nodered_user }}"
+    mode: "0644"
+    force: "{{ multiflexi_server_nodered_seed_flow | bool }}"
+  become: true
+  notify: Restart node-red
+  tags: ['multiflexi', 'nodered']
+
+- name: Enable and start Node-RED
+  ansible.builtin.service:
+    name: node-red
+    enabled: true
+    state: started
+  become: true
+  tags: ['multiflexi', 'nodered']
+
+- name: Wire the Node-RED integration in MultiFlexi config
+  community.general.ini_file:
+    path: /etc/multiflexi/multiflexi.env
+    section: nodered
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+    mode: "0640"
+    owner: root
+    group: www-data
+  become: true
+  loop:
+    - option: NODERED_ENABLED
+      value: "true"
+    - option: NODERED_URL
+      value: "{{ multiflexi_server_nodered_url }}"
+    - option: NODERED_CATALOG_URL
+      value: "{{ multiflexi_server_nodered_catalog_url }}"
+  register: multiflexi_nodered_env
+  tags: ['multiflexi', 'nodered']
+
+# Restart Node-RED now (load the seeded flow) before the event processor pushes.
+- name: Apply the seeded Node-RED flow
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Node-RED to listen
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 1880
+    timeout: 60
+  tags: ['multiflexi', 'nodered']
+
+- name: Restart the event processor to publish the catalog
+  ansible.builtin.service:
+    name: multiflexi-eventor
+    state: restarted
+  become: true
+  when: multiflexi_nodered_env is changed
+  tags: ['multiflexi', 'nodered']

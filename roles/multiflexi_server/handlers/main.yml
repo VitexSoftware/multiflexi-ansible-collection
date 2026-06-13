@@ -1,5 +1,10 @@
 ---
 - name: Restart apache2
-  service: 
-    name: apache2 
+  service:
+    name: apache2
+    state: restarted
+
+- name: Restart node-red
+  ansible.builtin.service:
+    name: node-red
     state: restarted

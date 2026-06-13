@@ -1,0 +1,20 @@
+[
+  {
+    "id": "multiflexi_catalog_tab",
+    "type": "tab",
+    "label": "MultiFlexi catalog",
+    "disabled": false,
+    "info": "Receives the MultiFlexi configuration catalog from multiflexi-eventor and builds one palette node per company, run-template and credential."
+  },
+  {
+    "id": "multiflexi_catalog_node",
+    "type": "multiflexi-catalog",
+    "z": "multiflexi_catalog_tab",
+    "name": "MultiFlexi catalog",
+    "path": "{{ multiflexi_server_nodered_catalog_path }}",
+    "appUrl": "{{ multiflexi_server_nodered_app_url }}",
+    "x": 280,
+    "y": 160,
+    "wires": [[]]
+  }
+]
