@@ -37,6 +37,25 @@
   notify: Restart node-red
   tags: ['multiflexi', 'nodered']
 
+- name: Create the Node-RED demo editor user (adminAuth)
+  ansible.builtin.blockinfile:
+    path: "{{ multiflexi_server_nodered_userdir }}/settings.js"
+    marker: "    // {mark} ANSIBLE MANAGED Node-RED admin user"
+    insertafter: 'module\.exports\s*=\s*\{'
+    block: |4
+          adminAuth: {
+              type: "credentials",
+              users: [{
+                  username: "{{ multiflexi_server_nodered_admin_user }}",
+                  password: "{{ multiflexi_server_nodered_admin_password_hash }}",
+                  permissions: "{{ multiflexi_server_nodered_admin_permissions }}"
+              }]
+          },
+  become: true
+  when: multiflexi_server_nodered_admin_user | length > 0
+  notify: Restart node-red
+  tags: ['multiflexi', 'nodered']
+
 - name: Enable Apache proxy modules for the Node-RED reverse proxy
   community.general.apache2_module:
     name: "{{ item }}"

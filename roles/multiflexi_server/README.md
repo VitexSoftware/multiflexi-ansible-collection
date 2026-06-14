@@ -80,6 +80,19 @@ Defaults are defined in `defaults/main.yml`.
   - Default: `/multiflexi/`
   - Base URL of the MultiFlexi web image endpoints the catalog node fetches icons from.
 
+- `multiflexi_server_nodered_admin_user` (string | optional)
+  - Default: `demo`
+  - Creates a Node-RED editor login (`adminAuth`) so the editor is not left open.
+    Set to `""` to leave Node-RED's own `adminAuth` untouched.
+
+- `multiflexi_server_nodered_admin_password_hash` (string | optional)
+  - Default: bcrypt hash of `demo`.
+  - The demo user's password as a Node-RED-format bcrypt hash (no `passlib`
+    needed on the control node). Generate one with `node-red-admin hash-pw`.
+
+- `multiflexi_server_nodered_admin_permissions` (string | optional)
+  - Default: `*` (full access). Use `read` for a read-only demo.
+
 - Other Node-RED knobs: `multiflexi_server_nodered_catalog_url`,
   `multiflexi_server_nodered_catalog_path`, `multiflexi_server_nodered_user`,
   `multiflexi_server_nodered_userdir`, `multiflexi_server_nodered_seed_flow`.

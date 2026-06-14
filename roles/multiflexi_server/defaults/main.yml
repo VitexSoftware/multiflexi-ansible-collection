@@ -40,6 +40,14 @@ multiflexi_server_nodered_catalog_url: "http://127.0.0.1:1880/multiflexi-catalog
 multiflexi_server_nodered_app_url: /multiflexi/
 # Seed a flow containing a multiflexi-catalog node (overwrites flows.json)
 multiflexi_server_nodered_seed_flow: true
+# Node-RED editor login (adminAuth). A demo user is created so the editor is not
+# left wide open. Set the user to "" to leave node-red's own adminAuth untouched.
+# The password is supplied as a bcrypt hash (node-red format) so no passlib is
+# needed on the control node. Default hash below is for the password "demo".
+# Generate your own with: node-red-admin hash-pw  (or: htpasswd -nBC 12 "" | tr -d ':\n')
+multiflexi_server_nodered_admin_user: demo
+multiflexi_server_nodered_admin_password_hash: "$2b$12$d96b41ded2b5c4e108e23OlAK3OF8IXom3oF7/pcwix2k7jVErPZK"
+multiflexi_server_nodered_admin_permissions: "*"  # "*" = full access, "read" = read-only
 
 # Database connection defaults (override in inventory; do not commit secrets)
 multiflexi_db_host: localhost
