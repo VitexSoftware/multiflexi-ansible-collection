@@ -21,9 +21,19 @@ multiflexi_server_zabbix_server: null
 multiflexi_server_nodered_enabled: false
 multiflexi_server_nodered_user: nodered
 multiflexi_server_nodered_userdir: /var/lib/node-red/.node-red
-# Editor URL shown in the Integrations menu (clickable by web users)
-multiflexi_server_nodered_url: "http://{{ ansible_fqdn }}:1880/"
-# Catalog node HTTP-in path + the URL the event processor pushes the catalog to
+# Expose the Node-RED editor through the existing HTTPS vhost under this path
+# (reverse-proxied to the local node-red) instead of the unencrypted :1880 port.
+# Set to "" to disable the proxy and fall back to direct :1880 access.
+multiflexi_server_nodered_http_root: /node-red
+# Editor URL shown in the Integrations menu (clickable by web users). By default
+# the HTTPS reverse-proxied path; falls back to direct :1880 when no proxy root.
+multiflexi_server_nodered_url: >-
+  {{ ('https://' ~ ansible_fqdn ~ multiflexi_server_nodered_http_root ~ '/')
+     if (multiflexi_server_nodered_http_root | length > 0)
+     else ('http://' ~ ansible_fqdn ~ ':1880/') }}
+# Catalog node HTTP-in path + the URL the event processor pushes the catalog to.
+# The catalog receiver stays on the local port (httpNodeRoot is left at '/'),
+# so the push path is unaffected by the editor reverse proxy.
 multiflexi_server_nodered_catalog_path: /multiflexi-catalog
 multiflexi_server_nodered_catalog_url: "http://127.0.0.1:1880/multiflexi-catalog"
 # Base URL of the MultiFlexi web image endpoints used by the catalog node

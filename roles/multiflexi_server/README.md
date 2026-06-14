@@ -63,8 +63,17 @@ Defaults are defined in `defaults/main.yml`.
     seeds a flow with a `multiflexi-catalog` node, wires the catalog feed and shows Node-RED
     in the MultiFlexi web Integrations menu.
 
+- `multiflexi_server_nodered_http_root` (string | optional)
+  - Default: `/node-red`
+  - Reverse-proxy the Node-RED editor under this path on the existing (HTTPS) Apache
+    vhost, served over TLS instead of the unencrypted `:1880` port. The role enables
+    the `proxy`, `proxy_http`, `proxy_wstunnel` and `rewrite` Apache modules, drops
+    `multiflexi-nodered.conf` and sets `httpAdminRoot` in Node-RED's `settings.js`.
+    Set to `""` to disable the proxy and use direct `:1880` access.
+
 - `multiflexi_server_nodered_url` (string | optional)
-  - Default: `http://{{ ansible_fqdn }}:1880/`
+  - Default: `https://{{ ansible_fqdn }}{{ multiflexi_server_nodered_http_root }}/`
+    (falls back to `http://{{ ansible_fqdn }}:1880/` when the proxy root is empty).
   - Node-RED editor URL linked from the Integrations menu.
 
 - `multiflexi_server_nodered_app_url` (string | optional)

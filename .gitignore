@@ -164,3 +164,6 @@ plugins/modules/.runtemplate.py.kate-swp
 
 # Ansible collection build artifacts
 *.tar.gz
+
+# locally installed collection copy (ansible-galaxy install target)
+.ansible/

@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+# MultiFlexi: reverse-proxy the Node-RED editor under
+# {{ multiflexi_server_nodered_http_root }}/ on the existing (HTTPS) vhost,
+# so it is reached over TLS instead of the unencrypted :1880 port.
+#
+# Node-RED itself is told to serve the editor at this base path
+# (settings.js: httpAdminRoot), so its assets and admin API resolve correctly
+# behind the proxy. The catalog HTTP-in node stays on the local port.
+<IfModule mod_proxy.c>
+    ProxyRequests Off
+    ProxyPreserveHost On
+
+    # The editor uses a WebSocket (comms) channel — upgrade it explicitly.
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule ^{{ multiflexi_server_nodered_http_root }}/comms(.*)$ ws://127.0.0.1:1880{{ multiflexi_server_nodered_http_root }}/comms$1 [P,L]
+
+    ProxyPass        {{ multiflexi_server_nodered_http_root }}/ http://127.0.0.1:1880{{ multiflexi_server_nodered_http_root }}/
+    ProxyPassReverse {{ multiflexi_server_nodered_http_root }}/ http://127.0.0.1:1880{{ multiflexi_server_nodered_http_root }}/
+</IfModule>

@@ -27,6 +27,57 @@
   become: true
   tags: ['multiflexi', 'nodered']
 
+- name: Serve the Node-RED editor under the reverse-proxy base path
+  ansible.builtin.lineinfile:
+    path: "{{ multiflexi_server_nodered_userdir }}/settings.js"
+    regexp: '^\s*//?\s*httpAdminRoot\s*:.*'
+    line: "    httpAdminRoot: '{{ multiflexi_server_nodered_http_root }}',"
+  become: true
+  when: multiflexi_server_nodered_http_root | length > 0
+  notify: Restart node-red
+  tags: ['multiflexi', 'nodered']
+
+- name: Enable Apache proxy modules for the Node-RED reverse proxy
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: present
+  become: true
+  loop:
+    - proxy
+    - proxy_http
+    - proxy_wstunnel
+    - rewrite
+  when:
+    - multiflexi_server_nodered_http_root | length > 0
+    - multiflexi_server_webserver_type == 'apache'
+  notify: Restart apache2
+  tags: ['multiflexi', 'nodered', 'apache']
+
+- name: Install the Node-RED reverse-proxy Apache config
+  ansible.builtin.template:
+    src: apache-nodered-proxy.conf.j2
+    dest: /etc/apache2/conf-available/multiflexi-nodered.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when:
+    - multiflexi_server_nodered_http_root | length > 0
+    - multiflexi_server_webserver_type == 'apache'
+  notify: Restart apache2
+  tags: ['multiflexi', 'nodered', 'apache']
+
+- name: Enable the Node-RED reverse-proxy Apache config
+  ansible.builtin.command:
+    cmd: a2enconf multiflexi-nodered
+    creates: /etc/apache2/conf-enabled/multiflexi-nodered.conf
+  become: true
+  when:
+    - multiflexi_server_nodered_http_root | length > 0
+    - multiflexi_server_webserver_type == 'apache'
+  notify: Restart apache2
+  tags: ['multiflexi', 'nodered', 'apache']
+
 - name: Seed the Node-RED catalog flow
   ansible.builtin.template:
     src: nodered-flows.json.j2
