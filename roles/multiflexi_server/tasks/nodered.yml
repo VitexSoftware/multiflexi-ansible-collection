@@ -117,13 +117,14 @@
   become: true
   tags: ['multiflexi', 'nodered']
 
+# multiflexi.env is read by Ease\Shared as flat KEY=value lines (it ignores
+# [section] headers and does NOT trim the key), so write plain, section-less,
+# space-free entries — otherwise the keys are unreadable by MultiFlexi.
 - name: Wire the Node-RED integration in MultiFlexi config
-  community.general.ini_file:
+  ansible.builtin.lineinfile:
     path: /etc/multiflexi/multiflexi.env
-    section: nodered
-    option: "{{ item.option }}"
-    value: "{{ item.value }}"
-    state: present
+    regexp: "^{{ item.option }}="
+    line: "{{ item.option }}={{ item.value }}"
     mode: "0640"
     owner: root
     group: www-data
