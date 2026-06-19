@@ -6,6 +6,7 @@
     ic: "12345678"
     slug: "DEMO"
     email: "demo@example.com"
+    enabled: true
     state: present
   become: true
   
