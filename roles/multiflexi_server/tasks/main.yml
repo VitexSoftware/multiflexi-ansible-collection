@@ -25,6 +25,11 @@
     file: tasks/exclusive.yml
   when: multiflexi_server_exclusive_host | bool
 
+- name: Create initial admin user
+  ansible.builtin.include_tasks:
+    file: tasks/admin.yml
+  when: multiflexi_initial_admin_login | length > 0
+
 - name: Configure MultiFlexi Zabbix integration
   ansible.builtin.include_tasks:
     file: tasks/zabbix.yml

@@ -13,6 +13,15 @@ multiflexi_server_webserver_type: apache  # default web server type, can be over
 # Enable when MultiFlexi is the only web application on the host.
 multiflexi_server_exclusive_host: false
 
+# Initial admin user. Set multiflexi_initial_admin_login to trigger creation.
+# Only runs when no enabled user exists yet (idempotent).
+# Leave multiflexi_initial_admin_password empty to auto-generate and print.
+multiflexi_initial_admin_login: ""
+multiflexi_initial_admin_email: ""        # defaults to admin@<fqdn> when empty
+multiflexi_initial_admin_password: ""     # auto-generated when empty
+multiflexi_initial_admin_firstname: "Admin"
+multiflexi_initial_admin_lastname: ""
+
 multiflexi_web_interface: true # Install multiflexi-web package
 
 # Optional Zabbix integration variables

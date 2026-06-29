@@ -1,0 +1,58 @@
+---
+- name: List existing MultiFlexi users
+  ansible.builtin.command:
+    cmd: multiflexi user:list --format json
+  become: true
+  register: multiflexi_user_list_raw
+  changed_when: false
+  tags: ['multiflexi', 'admin']
+
+- name: Check whether any enabled admin user already exists
+  ansible.builtin.set_fact:
+    multiflexi_has_enabled_user: >-
+      {{ (multiflexi_user_list_raw.stdout | from_json
+          | selectattr('enabled', 'equalto', 1) | list | length) > 0 }}
+  tags: ['multiflexi', 'admin']
+
+- name: Generate initial admin password when none provided
+  ansible.builtin.set_fact:
+    _multiflexi_admin_pass: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
+  when:
+    - not multiflexi_has_enabled_user
+    - multiflexi_initial_admin_password | length == 0
+  tags: ['multiflexi', 'admin']
+
+- name: Use provided admin password
+  ansible.builtin.set_fact:
+    _multiflexi_admin_pass: "{{ multiflexi_initial_admin_password }}"
+  when:
+    - not multiflexi_has_enabled_user
+    - multiflexi_initial_admin_password | length > 0
+  tags: ['multiflexi', 'admin']
+
+- name: Create initial MultiFlexi admin user
+  ansible.builtin.command:
+    argv:
+      - multiflexi
+      - user:create
+      - "--login={{ multiflexi_initial_admin_login }}"
+      - "--email={{ multiflexi_initial_admin_email | default('admin@' ~ ansible_fqdn) }}"
+      - "--plaintext={{ _multiflexi_admin_pass }}"
+      - "--firstname={{ multiflexi_initial_admin_firstname }}"
+      - "--lastname={{ multiflexi_initial_admin_lastname }}"
+      - "--enabled=true"
+  become: true
+  when: not multiflexi_has_enabled_user
+  no_log: true
+  tags: ['multiflexi', 'admin']
+
+- name: Print initial admin credentials
+  ansible.builtin.debug:
+    msg:
+      - "MultiFlexi initial admin account created"
+      - "  Login:    {{ multiflexi_initial_admin_login }}"
+      - "  Email:    {{ multiflexi_initial_admin_email | default('admin@' ~ ansible_fqdn) }}"
+      - "  Password: {{ _multiflexi_admin_pass }}"
+      - "  URL:      http://{{ ansible_fqdn }}/"
+  when: not multiflexi_has_enabled_user
+  tags: ['multiflexi', 'admin']

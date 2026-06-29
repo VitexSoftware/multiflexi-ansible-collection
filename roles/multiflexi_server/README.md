@@ -48,6 +48,23 @@ Defaults are defined in `defaults/main.yml`.
     the package's alias conf (`a2disconf multiflexi`) and the default vhost
     (`a2dissite 000-default`). Apache is restarted to apply the change.
 
+- `multiflexi_initial_admin_login` (string | optional)
+  - Default: `""` (disabled)
+  - When non-empty, creates an initial admin account using `multiflexi user:create`
+    if no enabled user exists yet (idempotent). Requires `multiflexi_initial_admin_email`
+    to be set (or defaults to `admin@<fqdn>`).
+
+- `multiflexi_initial_admin_email` (string | optional)
+  - Default: `""` — falls back to `admin@{{ ansible_fqdn }}`.
+
+- `multiflexi_initial_admin_password` (string | optional)
+  - Default: `""` — auto-generates a 16-character random password and prints it
+    via `ansible.builtin.debug` at the end of the play. Set explicitly to use a
+    known password (store it in Ansible Vault).
+
+- `multiflexi_initial_admin_firstname` / `multiflexi_initial_admin_lastname`
+  - Defaults: `"Admin"` / `""`.
+
 - `multiflexi_repository_channel` (string)
   - Default: `testing`
   - Choose repository channel: `testing` or `stable`.
@@ -165,6 +182,23 @@ Example Playbook
     multiflexi_server_zabbix_host: magnymph.vitexsoftware.com
     multiflexi_server_zabbix_server: zabbix.spojenet.cz
     multiflexi_repository_channel: stable   # or 'testing'
+  roles:
+    - role: multiflexi_server
+```
+
+Exclusive-host deployment with auto-generated admin password:
+
+```yaml
+- name: Install MultiFlexi as the sole web app with first admin
+  hosts: multiflexi_hosts
+  become: true
+  vars:
+    multiflexi_server_database_type: sqlite
+    multiflexi_repository_channel: stable
+    multiflexi_server_exclusive_host: true
+    multiflexi_initial_admin_login: admin
+    multiflexi_initial_admin_email: admin@example.com
+    # multiflexi_initial_admin_password: "{{ vault_admin_password }}"  # or leave empty to auto-generate
   roles:
     - role: multiflexi_server
 ```

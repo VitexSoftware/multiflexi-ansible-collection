@@ -8,6 +8,8 @@
     multiflexi_server_database_type: sqlite
     multiflexi_web_interface: true
     multiflexi_server_exclusive_host: true
+    multiflexi_initial_admin_login: admin
+    multiflexi_initial_admin_email: admin@monomakh.vitexsoftware.brevnov.czf
     multiflexi_extra_packages:
       - multiflexi-scheduler
       - multiflexi-executor
