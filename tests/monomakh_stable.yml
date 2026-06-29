@@ -1,0 +1,15 @@
+---
+- name: Install MultiFlexi from production repo on monomakh
+  hosts: monomakh
+  gather_facts: true
+  become: true
+  vars:
+    multiflexi_repository_channel: stable
+    multiflexi_server_database_type: sqlite
+    multiflexi_web_interface: true
+    multiflexi_server_exclusive_host: true
+    multiflexi_extra_packages:
+      - multiflexi-scheduler
+      - multiflexi-executor
+  roles:
+    - role: multiflexi_server

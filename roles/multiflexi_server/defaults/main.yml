@@ -9,6 +9,10 @@ multiflexi_server_database_engines:
 multiflexi_server_database_type: sqlite  # canonical database type, override in playbook or inventory
 multiflexi_server_webserver_type: apache  # default web server type, can be overridden in playbook or inventory
 
+# Serve MultiFlexi at / and /api instead of /multiflexi/ and /multiflexi/api/
+# Enable when MultiFlexi is the only web application on the host.
+multiflexi_server_exclusive_host: false
+
 multiflexi_web_interface: true # Install multiflexi-web package
 
 # Optional Zabbix integration variables

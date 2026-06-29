@@ -20,6 +20,11 @@
   ansible.builtin.include_tasks:
     file: tasks/php.yml
 
+- name: Configure MultiFlexi as exclusive web application
+  ansible.builtin.include_tasks:
+    file: tasks/exclusive.yml
+  when: multiflexi_server_exclusive_host | bool
+
 - name: Configure MultiFlexi Zabbix integration
   ansible.builtin.include_tasks:
     file: tasks/zabbix.yml

@@ -38,6 +38,16 @@ Defaults are defined in `defaults/main.yml`.
   - Default: `apache`
   - Web server to configure. Currently Apache is supported by the role tasks.
 
+- `multiflexi_server_exclusive_host` (bool | optional)
+  - Default: `false`
+  - When `true`, reconfigures Apache so MultiFlexi is served at `/` and `/api/`
+    instead of the package default `/multiflexi/` and `/multiflexi/api/`. Use this
+    when MultiFlexi is the only web application on the host.
+  - Deploys `/etc/apache2/sites-available/multiflexi.conf` with
+    `DocumentRoot /usr/share/multiflexi-web`, enables it (`a2ensite`), disables
+    the package's alias conf (`a2disconf multiflexi`) and the default vhost
+    (`a2dissite 000-default`). Apache is restarted to apply the change.
+
 - `multiflexi_repository_channel` (string)
   - Default: `testing`
   - Choose repository channel: `testing` or `stable`.
@@ -155,6 +165,20 @@ Example Playbook
     multiflexi_server_zabbix_host: magnymph.vitexsoftware.com
     multiflexi_server_zabbix_server: zabbix.spojenet.cz
     multiflexi_repository_channel: stable   # or 'testing'
+  roles:
+    - role: multiflexi_server
+```
+
+Exclusive-host deployment (MultiFlexi at `/`, no other web apps):
+
+```yaml
+- name: Install MultiFlexi as the sole web app on this host
+  hosts: multiflexi_hosts
+  become: true
+  vars:
+    multiflexi_server_database_type: sqlite
+    multiflexi_repository_channel: stable
+    multiflexi_server_exclusive_host: true
   roles:
     - role: multiflexi_server
 ```

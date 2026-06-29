@@ -1,0 +1,2 @@
+[monomakh]
+monomakh.vitexsoftware.brevnov.czf ansible_user=vitex ansible_become=true ansible_become_method=sudo

@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /usr/share/multiflexi-web
+
+    <Directory /usr/share/multiflexi-web>
+        Options FollowSymLinks
+        DirectoryIndex index.php
+        AllowOverride None
+
+        <IfModule mod_deflate.c>
+            AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/x-javascript text/javascript application/javascript application/json
+        </IfModule>
+    </Directory>
+
+    <Directory /usr/share/multiflexi-web/api>
+        AllowOverride All
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/multiflexi-error.log
+    CustomLog ${APACHE_LOG_DIR}/multiflexi-access.log combined
+</VirtualHost>

@@ -1,0 +1,35 @@
+---
+- name: Deploy MultiFlexi exclusive-host Apache vhost
+  ansible.builtin.template:
+    src: multiflexi-exclusive-vhost.conf.j2
+    dest: /etc/apache2/sites-available/multiflexi.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: Restart apache2
+  tags: ['multiflexi', 'apache', 'exclusive']
+
+- name: Enable MultiFlexi exclusive-host vhost
+  ansible.builtin.command:
+    cmd: a2ensite multiflexi
+    creates: /etc/apache2/sites-enabled/multiflexi.conf
+  become: true
+  notify: Restart apache2
+  tags: ['multiflexi', 'apache', 'exclusive']
+
+- name: Disable package multiflexi.conf alias (replaced by vhost DocumentRoot)
+  ansible.builtin.command:
+    cmd: a2disconf multiflexi
+    removes: /etc/apache2/conf-enabled/multiflexi.conf
+  become: true
+  notify: Restart apache2
+  tags: ['multiflexi', 'apache', 'exclusive']
+
+- name: Disable default Apache vhost for exclusive-host deployment
+  ansible.builtin.command:
+    cmd: a2dissite 000-default
+    removes: /etc/apache2/sites-enabled/000-default.conf
+  become: true
+  notify: Restart apache2
+  tags: ['multiflexi', 'apache', 'exclusive']
