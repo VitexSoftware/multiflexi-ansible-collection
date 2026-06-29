@@ -68,3 +68,49 @@ multiflexi_repositories:
   stable:
     repo_url: https://repo.multiflexi.eu
     gpg_key: https://repo.multiflexi.eu/KEY.gpg
+
+# APT components per channel (stable repo has no backports component)
+multiflexi_repository_components:
+  testing: "main backports"
+  stable: "main"
+
+# VaultWarden integration.
+# When multiflexi_vaultwarden_enabled is true the role installs
+# multiflexi-vaultwarden (and optionally multiflexi-vaultwarden-ui) from the
+# VitexSoftware APT repository, and optionally deploys the vaultwarden server
+# itself plus the bw CLI tool.
+multiflexi_vaultwarden_enabled: false
+
+# Install the MultiFlexi web UI component (credential form helper).
+multiflexi_vaultwarden_install_ui: true
+
+# Deploy the vaultwarden server package (requires a package source that
+# provides "vaultwarden" to be available in APT, e.g. from the vaultwarden
+# project's own repository).
+multiflexi_vaultwarden_install_server: false
+
+# Install the vaultwarden web-vault static files package ("vaultwarden-web").
+# Only relevant when multiflexi_vaultwarden_install_server is true.
+multiflexi_vaultwarden_install_web: true
+
+# Install the bw-cli package (Bitwarden CLI) from the VitexSoftware APT repository.
+multiflexi_vaultwarden_install_bwcli: false
+
+# URL MultiFlexi uses to reach the vaultwarden API.
+# Written to /etc/multiflexi/multiflexi.env as VAULTWARDEN_URL.
+# Leave empty to skip writing the env var (manual credential setup).
+multiflexi_vaultwarden_url: >-
+  {{ 'http://127.0.0.1:' ~ multiflexi_vaultwarden_server_port ~ '/'
+     if multiflexi_vaultwarden_install_server | bool
+     else '' }}
+
+# vaultwarden server settings (only used when install_server is true).
+multiflexi_vaultwarden_server_port: 8080
+multiflexi_vaultwarden_server_data_dir: /var/lib/vaultwarden
+multiflexi_vaultwarden_server_web_vault_dir: /usr/share/vaultwarden/web-vault
+# DOMAIN must be the externally reachable URL (used for invitation links etc.)
+multiflexi_vaultwarden_server_domain: "http://{{ ansible_fqdn }}:{{ multiflexi_vaultwarden_server_port }}"
+# Admin panel token — leave empty to disable the admin panel.
+multiflexi_vaultwarden_server_admin_token: ""
+multiflexi_vaultwarden_server_signups_allowed: true
+multiflexi_vaultwarden_server_log_level: warn

@@ -97,6 +97,43 @@ Defaults are defined in `defaults/main.yml`.
   `multiflexi_server_nodered_catalog_path`, `multiflexi_server_nodered_user`,
   `multiflexi_server_nodered_userdir`, `multiflexi_server_nodered_seed_flow`.
 
+- `multiflexi_vaultwarden_enabled` (bool | optional)
+  - Default: `false`
+  - When `true`, installs `multiflexi-vaultwarden` from the VitexSoftware APT
+    repository and optionally deploys the vaultwarden server, web vault and bw CLI.
+
+- `multiflexi_vaultwarden_install_ui` (bool | optional)
+  - Default: `true`
+  - Also install `multiflexi-vaultwarden-ui` (credential form helper for the web UI).
+
+- `multiflexi_vaultwarden_install_server` (bool | optional)
+  - Default: `false`
+  - Deploy the `vaultwarden` server package. The package must already be reachable
+    via APT — the role does **not** add the vaultwarden package repository.
+
+- `multiflexi_vaultwarden_install_web` (bool | optional)
+  - Default: `true`
+  - Install the `vaultwarden-web` static files package (only relevant when
+    `install_server` is `true`).
+
+- `multiflexi_vaultwarden_install_bwcli` (bool | optional)
+  - Default: `false`
+  - Install the `bw-cli` package (Bitwarden CLI) from the VitexSoftware APT repository.
+
+- `multiflexi_vaultwarden_url` (string | optional)
+  - Default: `http://127.0.0.1:<port>/` when `install_server` is true, otherwise `""`.
+  - Written to `/etc/multiflexi/multiflexi.env` as `VAULTWARDEN_URL`.
+    Set to `""` to skip writing the env var.
+
+- vaultwarden server knobs (only used when `install_server` is true):
+  `multiflexi_vaultwarden_server_port` (default `8080`),
+  `multiflexi_vaultwarden_server_data_dir` (default `/var/lib/vaultwarden`),
+  `multiflexi_vaultwarden_server_domain` (default `http://<fqdn>:<port>`),
+  `multiflexi_vaultwarden_server_admin_token` (default `""` = admin panel disabled),
+  `multiflexi_vaultwarden_server_signups_allowed` (default `true`),
+  `multiflexi_vaultwarden_server_log_level` (default `warn`),
+  `multiflexi_vaultwarden_server_web_vault_dir` (default `/usr/share/vaultwarden/web-vault`).
+
 Behavior Notes
 --------------
 
@@ -118,6 +155,25 @@ Example Playbook
     multiflexi_server_zabbix_host: magnymph.vitexsoftware.com
     multiflexi_server_zabbix_server: zabbix.spojenet.cz
     multiflexi_repository_channel: stable   # or 'testing'
+  roles:
+    - role: multiflexi_server
+```
+
+VaultWarden with bundled server example:
+
+```yaml
+- name: Install MultiFlexi server with VaultWarden
+  hosts: multiflexi_hosts
+  become: true
+  vars:
+    multiflexi_server_database_type: mysql
+    multiflexi_repository_channel: stable
+    multiflexi_vaultwarden_enabled: true
+    multiflexi_vaultwarden_install_server: true     # deploy vaultwarden server
+    multiflexi_vaultwarden_install_bwcli: true      # install bw-cli from APT
+    multiflexi_vaultwarden_server_domain: "https://vault.example.com"
+    multiflexi_vaultwarden_server_admin_token: "{{ vault_vw_admin_token }}"
+    multiflexi_vaultwarden_server_signups_allowed: false
   roles:
     - role: multiflexi_server
 ```

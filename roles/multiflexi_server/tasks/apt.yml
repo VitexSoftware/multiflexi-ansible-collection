@@ -16,7 +16,7 @@
 
 - name: Add VitexSoftware repo for {{ ansible_distribution_release }}
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/vitexsoftware-archive-keyring.gpg] {{ multiflexi_repositories[multiflexi_repository_channel].repo_url }} {{ ansible_distribution_release }} main backports"
+    repo: "deb [signed-by=/usr/share/keyrings/vitexsoftware-archive-keyring.gpg] {{ multiflexi_repositories[multiflexi_repository_channel].repo_url }} {{ ansible_distribution_release }} {{ multiflexi_repository_components[multiflexi_repository_channel] }}"
     state: present
     filename: vitexsoftware
   become: true

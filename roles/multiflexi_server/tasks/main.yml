@@ -29,3 +29,8 @@
   ansible.builtin.include_tasks:
     file: tasks/nodered.yml
   when: multiflexi_server_nodered_enabled | bool
+
+- name: Configure MultiFlexi VaultWarden integration
+  ansible.builtin.include_tasks:
+    file: tasks/vaultwarden.yml
+  when: multiflexi_vaultwarden_enabled | bool

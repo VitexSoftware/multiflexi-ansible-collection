@@ -10,3 +10,9 @@
     name: node-red
     state: restarted
   become: true
+
+- name: Restart vaultwarden
+  ansible.builtin.service:
+    name: vaultwarden
+    state: restarted
+  become: true

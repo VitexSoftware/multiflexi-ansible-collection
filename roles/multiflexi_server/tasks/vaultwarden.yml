@@ -1,0 +1,116 @@
+---
+# Install MultiFlexi VaultWarden integration and, optionally, the vaultwarden
+# server, web-vault and bw CLI.
+#
+# Variables (defaults/main.yml):
+#   multiflexi_vaultwarden_install_ui         – install web UI helper package
+#   multiflexi_vaultwarden_install_server     – deploy vaultwarden server
+#   multiflexi_vaultwarden_install_web        – install web-vault static files
+#   multiflexi_vaultwarden_install_bwcli      – install bw CLI via npm
+#   multiflexi_vaultwarden_url                – URL written to multiflexi.env
+
+# ── 1. MultiFlexi integration packages ──────────────────────────────────────
+
+- name: Install multiflexi-vaultwarden package
+  ansible.builtin.apt:
+    name: multiflexi-vaultwarden
+    state: present
+  become: true
+  tags: [multiflexi, vaultwarden]
+
+- name: Install multiflexi-vaultwarden-ui package
+  ansible.builtin.apt:
+    name: multiflexi-vaultwarden-ui
+    state: present
+  become: true
+  when: multiflexi_vaultwarden_install_ui | bool
+  tags: [multiflexi, vaultwarden]
+
+# ── 2. vaultwarden server ────────────────────────────────────────────────────
+# The "vaultwarden" package must already be reachable via APT
+# (e.g. from the project's own repository or a third-party Debian repo).
+# The role does not add that repository; configure it separately.
+
+- name: Install vaultwarden server package
+  ansible.builtin.apt:
+    name: vaultwarden
+    state: present
+  become: true
+  when: multiflexi_vaultwarden_install_server | bool
+  tags: [multiflexi, vaultwarden, vaultwarden-server]
+
+- name: Install vaultwarden web-vault package
+  ansible.builtin.apt:
+    name: vaultwarden-web
+    state: present
+  become: true
+  when:
+    - multiflexi_vaultwarden_install_server | bool
+    - multiflexi_vaultwarden_install_web | bool
+  tags: [multiflexi, vaultwarden, vaultwarden-server]
+
+- name: Ensure vaultwarden data directory exists
+  ansible.builtin.file:
+    path: "{{ multiflexi_vaultwarden_server_data_dir }}"
+    state: directory
+    owner: vaultwarden
+    group: vaultwarden
+    mode: "0750"
+  become: true
+  when: multiflexi_vaultwarden_install_server | bool
+  tags: [multiflexi, vaultwarden, vaultwarden-server]
+
+- name: Write vaultwarden environment configuration
+  ansible.builtin.template:
+    src: vaultwarden.env.j2
+    dest: /etc/vaultwarden.env
+    owner: root
+    group: vaultwarden
+    mode: "0640"
+  become: true
+  when: multiflexi_vaultwarden_install_server | bool
+  notify: Restart vaultwarden
+  tags: [multiflexi, vaultwarden, vaultwarden-server]
+
+- name: Enable and start vaultwarden service
+  ansible.builtin.service:
+    name: vaultwarden
+    enabled: true
+    state: started
+  become: true
+  when: multiflexi_vaultwarden_install_server | bool
+  tags: [multiflexi, vaultwarden, vaultwarden-server]
+
+- name: Wait for vaultwarden to listen
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ multiflexi_vaultwarden_server_port }}"
+    timeout: 30
+  when: multiflexi_vaultwarden_install_server | bool
+  tags: [multiflexi, vaultwarden, vaultwarden-server]
+
+# ── 3. Bitwarden CLI (bw) ────────────────────────────────────────────────────
+
+- name: Install bw-cli package
+  ansible.builtin.apt:
+    name: bw-cli
+    state: present
+  become: true
+  when: multiflexi_vaultwarden_install_bwcli | bool
+  tags: [multiflexi, vaultwarden, bwcli]
+
+# ── 4. Wire MultiFlexi config ────────────────────────────────────────────────
+# multiflexi.env is read by Ease\Shared as flat KEY=value lines.
+# Write space-free, section-less entries so keys are correctly parsed.
+
+- name: Wire VaultWarden URL in MultiFlexi config
+  ansible.builtin.lineinfile:
+    path: /etc/multiflexi/multiflexi.env
+    regexp: "^VAULTWARDEN_URL="
+    line: "VAULTWARDEN_URL={{ multiflexi_vaultwarden_url }}"
+    mode: "0640"
+    owner: root
+    group: www-data
+  become: true
+  when: multiflexi_vaultwarden_url | length > 0
+  tags: [multiflexi, vaultwarden]
