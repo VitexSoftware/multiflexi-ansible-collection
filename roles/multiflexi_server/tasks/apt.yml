@@ -23,9 +23,10 @@
   tags: [always]
 
 - name: Refresh APT cache after adding VitexSoftware repository
-  ansible.builtin.apt:
-    update_cache: true
+  ansible.builtin.command:
+    cmd: apt-get update --allow-releaseinfo-change
   become: true
+  changed_when: false
   tags: [always]
 
 - name: Upgrade MultiFlexi database migration packages

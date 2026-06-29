@@ -49,7 +49,7 @@
     dbconf_dbname: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[3] }}"
     dbconf_dbuser: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[4] }}"
     dbconf_dbpass: "{{ (dbconf_vars.stdout | default('|||||')).split('|')[5] }}"
-  when: dbconf_stat.stat.exists
+  when: dbconf_stat.stat.exists and not (dbconf_vars.skipped | default(false))
 
 - name: Compute effective database settings
   ansible.builtin.set_fact:
