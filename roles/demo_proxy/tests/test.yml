@@ -1,0 +1,6 @@
+---
+- name: Test demo_proxy role
+  hosts: localhost
+  remote_user: root
+  roles:
+    - demo_proxy

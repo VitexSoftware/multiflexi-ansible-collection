@@ -17,6 +17,20 @@
 - name: Install all available MultiFlexi packages
   ansible.builtin.include_tasks: install_packages.yml
 
+- name: Disable CSRF protection on demo instance (login form gives "Invalid security token" otherwise)
+  community.general.ini_file:
+    path: "/etc/multiflexi/multiflexi.env"
+    option: CSRF_PROTECTION_ENABLED
+    value: "false"
+    state: present
+    no_extra_spaces: true
+    mode: "0640"
+    owner: root
+    group: www-data
+  become: true
+  when: demo_disable_csrf_protection | default(true) | bool
+  tags: demo_tasks
+
 - name: Include tasks from the demo role
   ansible.builtin.include_tasks: "{{ item }}"
   loop:

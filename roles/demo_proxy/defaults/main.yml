@@ -1,0 +1,10 @@
+---
+# defaults file for demo_proxy
+# demo_proxy_domain and demo_proxy_backend_host are deployment-specific and
+# have no sensible generic default - set them in the play/inventory that
+# uses this role.
+demo_proxy_domain: example.com
+demo_proxy_backend_scheme: http
+demo_proxy_backend_host: 127.0.0.1
+demo_proxy_backend_path: /multiflexi/
+demo_proxy_letsencrypt_live_dir: "/etc/letsencrypt/live/{{ demo_proxy_domain }}"

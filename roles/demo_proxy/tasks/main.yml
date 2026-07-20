@@ -1,0 +1,50 @@
+---
+- name: Ensure Apache and Certbot packages are installed
+  ansible.builtin.apt:
+    name:
+      - apache2
+      - python3-certbot-apache
+    state: present
+  become: true
+
+- name: Enable required Apache modules
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - proxy
+    - proxy_http
+    - headers
+    - rewrite
+    - ssl
+  become: true
+  notify: Restart apache2
+
+- name: Check Let's Encrypt certificate exists for {{ demo_proxy_domain }}
+  ansible.builtin.stat:
+    path: "{{ demo_proxy_letsencrypt_live_dir }}/fullchain.pem"
+  register: demo_proxy_cert
+
+- name: Fail with guidance when the TLS certificate is missing
+  ansible.builtin.fail:
+    msg: >-
+      No certificate found at {{ demo_proxy_letsencrypt_live_dir }}/fullchain.pem.
+      Issue one first, e.g.: certbot --apache -d {{ demo_proxy_domain }}
+  when: not demo_proxy_cert.stat.exists
+
+- name: Deploy reverse proxy vhost for {{ demo_proxy_domain }}
+  ansible.builtin.template:
+    src: reverse_proxy.conf.j2
+    dest: "/etc/apache2/sites-available/{{ demo_proxy_domain }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: Reload apache2
+
+- name: Enable {{ demo_proxy_domain }} site
+  ansible.builtin.command: "a2ensite {{ demo_proxy_domain }}.conf"
+  args:
+    creates: "/etc/apache2/sites-enabled/{{ demo_proxy_domain }}.conf"
+  become: true
+  notify: Reload apache2

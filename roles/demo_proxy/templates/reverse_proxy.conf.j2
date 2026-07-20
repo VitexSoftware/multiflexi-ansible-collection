@@ -1,0 +1,45 @@
+DirectoryIndex index.php index.html
+
+
+<VirtualHost *:80>
+  ServerName {{ demo_proxy_domain }}
+
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R,L]
+
+</VirtualHost>
+
+
+<VirtualHost *:443>
+  ServerName {{ demo_proxy_domain }}
+
+  SSLEngine on
+  SSLCipherSuite AES256+EECDH:AES256+EDH
+  SSLProtocol All -SSLv2 -SSLv3
+  SSLHonorCipherOrder On
+  SSLCompression off
+  SSLCertificateFile {{ demo_proxy_letsencrypt_live_dir }}/fullchain.pem
+  SSLCertificateKeyFile {{ demo_proxy_letsencrypt_live_dir }}/privkey.pem
+  SSLCertificateChainFile {{ demo_proxy_letsencrypt_live_dir }}/chain.pem
+
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R,L]
+
+  # Preserve the client's Host header so the backend issues its session
+  # cookie for {{ demo_proxy_domain }} instead of this proxy's backend
+  # address - otherwise browsers silently reject the cookie and every
+  # request looks like a fresh, unauthenticated session.
+  ProxyPreserveHost On
+
+  # The hop to the backend is plain HTTP, so tell it the original request
+  # was HTTPS - without this the backend's own HTTPS-enforcing rewrite
+  # fires on every proxied request and loops with the path below.
+  RequestHeader set X-Forwarded-Proto "https"
+  RequestHeader set X-Forwarded-Host "{{ demo_proxy_domain }}"
+
+  ProxyPass / {{ demo_proxy_backend_scheme }}://{{ demo_proxy_backend_host }}{{ demo_proxy_backend_path }}
+  ProxyPassReverse / {{ demo_proxy_backend_scheme }}://{{ demo_proxy_backend_host }}{{ demo_proxy_backend_path }}
+
+</VirtualHost>

@@ -40,6 +40,7 @@ The role uses default values but can be customized:
 - `demo_app_id`: Application UUID (default: "78fa718c-7ca2-4a38-840e-8e5f0db06432")
 - `scheduled`: Job scheduling (default: "now")
 - `executor`: Execution engine (default: "native")
+- `demo_disable_csrf_protection`: Disable CSRF token check in MultiFlexi web login, so a stale/shared demo session cannot lock visitors out with "Invalid security token" (default: true)
 
 ## Dependencies
 

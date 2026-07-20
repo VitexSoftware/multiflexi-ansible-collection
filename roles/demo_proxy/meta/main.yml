@@ -1,0 +1,26 @@
+galaxy_info:
+  author: Vítězslav Dvořák <info@vitexsoftware.cz>
+  description: Reverse proxy vhost for the MultiFlexi demo instance
+  company: Vitex Software
+
+  issue_tracker_url: https://github.com/VitexSoftware/multiflexi-ansible-collection/issues
+
+  license: MIT
+
+  min_ansible_version: '2.1'
+
+  platforms:
+    - name: Debian
+      versions:
+        - '10'
+        - '11'
+        - '12'
+    - name: Ubuntu
+      versions:
+        - '20.04'
+        - '22.04'
+        - '24.04'
+
+  galaxy_tags: []
+
+dependencies: []
