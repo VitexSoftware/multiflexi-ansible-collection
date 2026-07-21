@@ -1,0 +1,34 @@
+---
+- name: Verify journald logs reach Loki via the OTEL Collector
+  hosts: otel_logging_engine
+  gather_facts: true
+  vars:
+    otel_verify_base: "http://127.0.0.1:3100"
+    otel_verify_token: "otel-journald-{{ ansible_date_time.epoch }}"
+    otel_verify_query: '{service_namespace="multiflexi"} |= "{{ otel_verify_token }}"'
+    otel_verify_start_ns: "{{ ((ansible_date_time.epoch | int) - 600) * 1000000000 }}"
+    otel_verify_end_ns: "{{ ((ansible_date_time.epoch | int) + 300) * 1000000000 }}"
+  tasks:
+    - name: Emit a unique journald probe message
+      ansible.builtin.command: logger -t otel-agent-probe "otel journald probe {{ otel_verify_token }}"
+      changed_when: true
+
+    - name: Query the probe back from Loki
+      ansible.builtin.uri:
+        url: "{{ otel_verify_base }}/loki/api/v1/query_range?query={{ otel_verify_query | urlencode }}&start={{ otel_verify_start_ns }}&end={{ otel_verify_end_ns }}&limit=50&direction=BACKWARD"
+        method: GET
+        return_content: true
+      register: otel_verify_result
+      until: >-
+        (otel_verify_result.json.data.result | default([]) | length > 0)
+        and (otel_verify_token in (otel_verify_result.content | default('')))
+      retries: 30
+      delay: 2
+
+    - name: Assert the journald probe was ingested by Loki
+      ansible.builtin.assert:
+        that:
+          - otel_verify_result.json.data.result | default([]) | length > 0
+          - otel_verify_token in (otel_verify_result.content | default(''))
+        success_msg: "journald -> collector -> Loki OK (token {{ otel_verify_token }})"
+        fail_msg: "journald probe not found in Loki within timeout"

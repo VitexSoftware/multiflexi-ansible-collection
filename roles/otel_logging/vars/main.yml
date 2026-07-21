@@ -1,0 +1,3 @@
+---
+# vars file for otel_logging
+# (Overridable values live in defaults/main.yml.)

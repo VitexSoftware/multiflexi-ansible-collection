@@ -1,0 +1,75 @@
+---
+# No apt cache refresh here: the collector installs from a downloaded .deb, so
+# it must not depend on the health of other apt repositories on the host.
+- name: Ensure prerequisites are installed
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+    state: present
+  become: true
+  tags: [otel, collector]
+
+- name: Gather installed package facts
+  ansible.builtin.package_facts:
+    manager: auto
+  tags: [otel, collector]
+
+- name: Install the OpenTelemetry Collector (contrib) .deb
+  when: >-
+    otel_collector_package not in ansible_facts.packages
+    or otel_collector_version not in
+       (ansible_facts.packages[otel_collector_package] | map(attribute='version') | list | join(','))
+  become: true
+  tags: [otel, collector]
+  block:
+    - name: Download the OpenTelemetry Collector (contrib) package
+      ansible.builtin.get_url:
+        url: "{{ otel_collector_deb_url }}"
+        dest: "/tmp/otelcol-contrib_{{ otel_collector_version }}_{{ otel_collector_arch }}.deb"
+        mode: "0644"
+
+    - name: Install the OpenTelemetry Collector (contrib) package
+      ansible.builtin.apt:
+        deb: "/tmp/otelcol-contrib_{{ otel_collector_version }}_{{ otel_collector_arch }}.deb"
+        state: present
+
+- name: Ensure the collector can read the journal and log files
+  when: otel_collector_run_as_root | bool
+  become: true
+  tags: [otel, collector]
+  block:
+    - name: Ensure the collector systemd drop-in directory exists
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ otel_collector_service_name }}.service.d"
+        state: directory
+        mode: "0755"
+
+    - name: Run the collector as root
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ otel_collector_service_name }}.service.d/10-run-as-root.conf"
+        content: |
+          [Service]
+          User=root
+          Group=root
+        mode: "0644"
+      notify: Restart otel collector
+
+- name: Deploy the OpenTelemetry Collector configuration
+  ansible.builtin.template:
+    src: otelcol-config.yaml.j2
+    dest: "{{ otel_collector_config_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: Restart otel collector
+  tags: [otel, collector]
+
+- name: Ensure the collector service is enabled and running
+  ansible.builtin.systemd_service:
+    name: "{{ otel_collector_service_name }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
+  tags: [otel, collector]

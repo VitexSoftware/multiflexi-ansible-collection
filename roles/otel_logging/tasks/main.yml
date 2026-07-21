@@ -1,0 +1,86 @@
+---
+- name: Validate the selected logging engine
+  ansible.builtin.assert:
+    that:
+      - otel_logging_engine == 'loki'
+    fail_msg: >-
+      otel_logging currently supports only the 'loki' engine
+      (got '{{ otel_logging_engine }}').
+    quiet: true
+  tags: [otel, logging]
+
+- name: Ensure repository prerequisites are installed (refresh cache first)
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+    state: present
+    update_cache: true
+  become: true
+  tags: [otel, logging]
+
+- name: Ensure the APT keyrings directory exists
+  ansible.builtin.file:
+    path: "{{ otel_logging_keyring_path | dirname }}"
+    state: directory
+    mode: "0755"
+  become: true
+  tags: [otel, logging]
+
+- name: Download the Grafana APT signing key
+  ansible.builtin.get_url:
+    url: "{{ otel_logging_repo_gpg_key }}"
+    dest: "{{ otel_logging_keyring_path }}"
+    mode: "0644"
+  become: true
+  tags: [otel, logging]
+
+- name: Add the Grafana APT repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/grafana.list
+    content: "deb [signed-by={{ otel_logging_keyring_path }}] {{ otel_logging_repo_url }} {{ otel_logging_repo_component }} main\n"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  tags: [otel, logging]
+
+- name: Refresh APT cache after adding the Grafana repository
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  tags: [otel, logging]
+
+- name: Install the logging engine package {{ otel_logging_package }}
+  ansible.builtin.apt:
+    name: "{{ otel_logging_package }}"
+    state: present
+    update_cache: true
+  become: true
+  tags: [otel, logging]
+
+- name: Ensure the Loki data directory exists
+  ansible.builtin.file:
+    path: "{{ otel_logging_data_dir }}"
+    state: directory
+    owner: "{{ otel_logging_user }}"
+    mode: "0750"
+  become: true
+  tags: [otel, logging]
+
+- name: Deploy the Loki configuration
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: "{{ otel_logging_config_file }}"
+    owner: "{{ otel_logging_user }}"
+    mode: "0640"
+  become: true
+  notify: Restart loki
+  tags: [otel, logging]
+
+- name: Ensure the Loki service is enabled and running
+  ansible.builtin.service:
+    name: "{{ otel_logging_service_name }}"
+    state: started
+    enabled: true
+  become: true
+  tags: [otel, logging]

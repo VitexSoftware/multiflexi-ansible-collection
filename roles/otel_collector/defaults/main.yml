@@ -1,0 +1,46 @@
+---
+# defaults file for otel_collector
+#
+# Deploys the OpenTelemetry Collector (contrib) as a per-host agent that ships
+# the systemd journal (and OTLP from local apps/MCP servers) to the OTEL logging
+# engine (Loki). This is the universal auditability backbone: everything under
+# systemd is captured without per-application instrumentation.
+
+# otelcol-contrib release to install (official .deb from GitHub releases).
+otel_collector_version: "0.156.0"
+otel_collector_arch_map:
+  x86_64: amd64
+  aarch64: arm64
+otel_collector_arch: "{{ otel_collector_arch_map[ansible_architecture] | default('amd64') }}"
+# Install from the VitexSoftware APT repository pool (mirrored via repo-borrow).
+# Direct .deb download keeps the role independent of apt repo metadata/signing.
+otel_collector_deb_baseurl: "http://repo.vitexsoftware.com/pool/main/o/otelcol-contrib"
+otel_collector_deb_filename: "otelcol-contrib_{{ otel_collector_version }}_{{ otel_collector_arch }}.deb"
+otel_collector_deb_url: "{{ otel_collector_deb_baseurl }}/{{ otel_collector_deb_filename }}"
+otel_collector_package: otelcol-contrib
+otel_collector_service_name: otelcol-contrib
+otel_collector_config_file: /etc/otelcol-contrib/config.yaml
+
+# Destination: the OTEL logging engine (Loki) OTLP endpoint. The otlphttp
+# exporter appends /v1/logs. Point at the local Loki or a central gateway.
+otel_collector_logs_endpoint: "http://127.0.0.1:3100/otlp"
+
+# OTLP receiver bind addresses (local apps / MCP servers can push OTLP here).
+otel_collector_otlp_grpc_endpoint: "0.0.0.0:4317"
+otel_collector_otlp_http_endpoint: "0.0.0.0:4318"
+
+# Resource attributes stamped on every record (promoted to Loki index labels).
+otel_collector_service_namespace: multiflexi
+otel_collector_deployment_environment: test
+
+# journald source
+otel_collector_journald_enabled: true
+otel_collector_journald_start_at: end     # end = only new entries; beginning = backfill
+otel_collector_journald_units: []         # empty = all units
+
+# Run the agent as root so it can read the full systemd journal and log files.
+otel_collector_run_as_root: true
+
+# Collector self-telemetry Prometheus endpoint (binds 127.0.0.1:8888 by default).
+# Set false on hosts where 8888 is already in use to avoid a startup conflict.
+otel_collector_internal_metrics_enabled: true

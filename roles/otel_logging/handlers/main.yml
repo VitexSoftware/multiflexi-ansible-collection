@@ -1,0 +1,7 @@
+---
+- name: Restart loki
+  ansible.builtin.service:
+    name: "{{ otel_logging_service_name }}"
+    state: restarted
+    enabled: true
+  become: true

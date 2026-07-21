@@ -1,0 +1,18 @@
+---
+# Deploys the OTEL Collector agent on the vyvojar MultiFlexi prototype host,
+# shipping its systemd journal (incl. multiflexi-executor/scheduler/eventor) to
+# the test Loki on 10.11.56.226. View in Grafana: {deployment_environment="prototype"}.
+- name: Deploy the OTEL Collector agent on vyvojar (MultiFlexi prototype -> test Loki)
+  hosts: otel_agents
+  become: true
+  gather_facts: true
+  vars:
+    otel_collector_logs_endpoint: "http://10.11.56.226:3100/otlp"
+    otel_collector_deployment_environment: prototype
+    # OTLP receiver bound to localhost (only local apps push here; not exposed).
+    otel_collector_otlp_grpc_endpoint: "127.0.0.1:4317"
+    otel_collector_otlp_http_endpoint: "127.0.0.1:4318"
+    # Port 8888 is already in use on vyvojar; disable the self-metrics endpoint.
+    otel_collector_internal_metrics_enabled: false
+  roles:
+    - otel_collector

@@ -1,0 +1,7 @@
+---
+- name: Install the OTEL logging engine (Grafana Loki)
+  hosts: otel_logging_engine
+  become: true
+  gather_facts: true
+  roles:
+    - otel_logging

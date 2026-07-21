@@ -1,0 +1,49 @@
+---
+# defaults file for otel_logging
+#
+# Installs the logging engine that ingests and stores OpenTelemetry logs/data.
+# Currently implemented with Grafana Loki, which natively ingests OTLP over HTTP
+# (POST /otlp/v1/logs) and is queryable from Grafana.
+
+# Logging engine to install. Only "loki" is implemented today; the variable
+# exists so alternative engines can be added later without breaking playbooks.
+otel_logging_engine: loki
+
+# --- Grafana APT repository (provides the loki .deb) -------------------------
+otel_logging_repo_url: "https://apt.grafana.com"
+otel_logging_repo_gpg_key: "https://apt.grafana.com/gpg.key"
+otel_logging_repo_component: "stable"          # stable | beta
+otel_logging_keyring_path: /etc/apt/keyrings/grafana.asc
+otel_logging_package: loki
+
+# --- Service identity & network ---------------------------------------------
+otel_logging_service_name: loki
+# File owner for Loki config and data. The Grafana loki .deb creates this system
+# user (primary group is distro-dependent, e.g. 'nogroup'), so ownership is by
+# user only and files do not assume a dedicated 'loki' group exists.
+otel_logging_user: loki
+otel_logging_http_listen_address: "0.0.0.0"
+otel_logging_http_listen_port: 3100            # OTLP ingest + query API
+otel_logging_grpc_listen_port: 9096
+otel_logging_log_level: info
+
+# --- Storage (local filesystem TSDB) ----------------------------------------
+# Object storage (S3/GCS) is intentionally out of scope for this role.
+otel_logging_config_file: /etc/loki/config.yml
+otel_logging_data_dir: /var/lib/loki
+
+# --- Retention (audit-oriented) ---------------------------------------------
+otel_logging_retention_enabled: true
+otel_logging_retention_period: "2160h"         # 90 days
+
+# --- OTLP ingestion ----------------------------------------------------------
+# Structured metadata is required for OTLP logs and is on by default in Loki 3.x.
+otel_logging_allow_structured_metadata: true
+# Multi-tenancy off -> single tenant (no X-Scope-OrgID header required).
+otel_logging_auth_enabled: false
+# OTEL resource attributes promoted to Loki index labels (keep the set small;
+# Loki has a 15-label limit). Everything else becomes structured metadata.
+otel_logging_otlp_index_labels:
+  - service.name
+  - service.namespace
+  - deployment.environment

@@ -1,0 +1,57 @@
+{{ ansible_managed | comment }}
+# OpenTelemetry Collector (contrib) agent for MultiFlexi OTEL logging.
+# Ships the systemd journal and local OTLP to the OTEL logging engine (Loki).
+
+receivers:
+{% if otel_collector_journald_enabled %}
+  journald:
+    start_at: {{ otel_collector_journald_start_at }}
+{% if otel_collector_journald_units | length > 0 %}
+    units:
+{% for unit in otel_collector_journald_units %}
+      - {{ unit }}
+{% endfor %}
+{% endif %}
+{% endif %}
+  otlp:
+    protocols:
+      grpc:
+        endpoint: {{ otel_collector_otlp_grpc_endpoint }}
+      http:
+        endpoint: {{ otel_collector_otlp_http_endpoint }}
+
+processors:
+  resourcedetection:
+    detectors: [env, system]
+    system:
+      hostname_sources: [os]
+  resource:
+    attributes:
+      - key: service.namespace
+        value: "{{ otel_collector_service_namespace }}"
+        action: upsert
+      - key: deployment.environment
+        value: "{{ otel_collector_deployment_environment }}"
+        action: upsert
+      - key: service.name
+        value: "{{ ansible_fqdn }}"
+        action: insert
+  batch: {}
+
+exporters:
+  otlphttp/loki:
+    endpoint: {{ otel_collector_logs_endpoint }}
+    tls:
+      insecure: true
+
+service:
+{% if not otel_collector_internal_metrics_enabled %}
+  telemetry:
+    metrics:
+      level: none
+{% endif %}
+  pipelines:
+    logs:
+      receivers: [{{ 'journald, ' if otel_collector_journald_enabled else '' }}otlp]
+      processors: [resourcedetection, resource, batch]
+      exporters: [otlphttp/loki]

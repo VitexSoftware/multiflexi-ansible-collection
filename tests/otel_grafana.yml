@@ -1,0 +1,30 @@
+---
+# Installs Grafana and provisions a Loki datasource on the test host, using the
+# vendored VSAnsible `ansible_grafana` role. Run with a roles path that includes
+# both this collection and VSAnsible services, e.g.:
+#   ANSIBLE_ROLES_PATH=roles:/home/vitex/Projects/VitexSoftware/VSAnsible/roles/services \
+#     ansible-playbook -i tests/otel_hosts.ini tests/otel_grafana.yml
+- name: Install Grafana with a Loki datasource (OTEL logs backend)
+  hosts: otel_logging_engine
+  become: true
+  gather_facts: true
+  vars:
+    # Reuse the apt.grafana.com repo already configured by the otel_logging role.
+    # (ansible_grafana's own repo path uses the deprecated apt_key, which fails
+    # on Debian 13; the grafana package is served from the same repo.)
+    grafana_manage_repo: false
+    # Legacy [alerting] was removed in Grafana 11+; an empty dict makes the role
+    # render "[alerting] enabled = false" instead of the rejected "= true"
+    # (otherwise Grafana 13 refuses to start: invalid setting [alerting].enabled).
+    grafana_alerting: {}
+    grafana_security:
+      admin_user: admin
+      admin_password: "{{ grafana_admin_password | default('ChangeMe-OtelTest1') }}"
+    grafana_datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: "http://127.0.0.1:3100"
+        isDefault: true
+  roles:
+    - ansible_grafana

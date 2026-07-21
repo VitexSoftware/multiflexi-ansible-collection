@@ -1,0 +1,28 @@
+galaxy_info:
+  author: Vítězslav Dvořák <info@vitexsoftware.cz>
+  description: Deploy the OpenTelemetry Collector (contrib) agent shipping journald/OTLP to the OTEL logging engine
+  company: Vitex Software
+
+  issue_tracker_url: https://github.com/VitexSoftware/multiflexi-ansible-collection/issues
+
+  license: MIT
+
+  min_ansible_version: '2.1'
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+
+  galaxy_tags:
+    - opentelemetry
+    - otel
+    - collector
+    - logging
+    - observability
+    - multiflexi
+
+dependencies: []

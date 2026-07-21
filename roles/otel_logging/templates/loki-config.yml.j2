@@ -1,0 +1,57 @@
+{{ ansible_managed | comment }}
+# Grafana Loki configuration for the MultiFlexi OTEL logging engine.
+# Single-binary, filesystem storage, native OTLP ingestion (POST /otlp/v1/logs).
+
+auth_enabled: {{ otel_logging_auth_enabled | bool | lower }}
+
+server:
+  http_listen_address: {{ otel_logging_http_listen_address }}
+  http_listen_port: {{ otel_logging_http_listen_port }}
+  grpc_listen_port: {{ otel_logging_grpc_listen_port }}
+  log_level: {{ otel_logging_log_level }}
+
+common:
+  path_prefix: {{ otel_logging_data_dir }}
+  storage:
+    filesystem:
+      chunks_directory: {{ otel_logging_data_dir }}/chunks
+      rules_directory: {{ otel_logging_data_dir }}/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  allow_structured_metadata: {{ otel_logging_allow_structured_metadata | bool | lower }}
+  retention_period: {{ otel_logging_retention_period }}
+{% if otel_logging_otlp_index_labels | length > 0 %}
+  otlp_config:
+    resource_attributes:
+      attributes_config:
+        - action: index_label
+          attributes:
+{% for attr in otel_logging_otlp_index_labels %}
+            - {{ attr }}
+{% endfor %}
+{% endif %}
+
+compactor:
+  working_directory: {{ otel_logging_data_dir }}/compactor
+  retention_enabled: {{ otel_logging_retention_enabled | bool | lower }}
+  delete_request_store: filesystem
+
+ruler:
+  storage:
+    type: local
+    local:
+      directory: {{ otel_logging_data_dir }}/rules

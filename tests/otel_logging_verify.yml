@@ -1,0 +1,62 @@
+---
+- name: Verify the OTEL logging engine (Loki) round-trips OTLP logs
+  hosts: otel_logging_engine
+  gather_facts: true
+  vars:
+    otel_verify_base: "http://127.0.0.1:3100"
+    otel_verify_service: "selftest-{{ ansible_date_time.iso8601_basic_short }}"
+    otel_verify_token: "otel-selftest-{{ ansible_date_time.epoch }}"
+    otel_verify_query: '{service_name="{{ otel_verify_service }}"}'
+    otel_verify_start_ns: "{{ ((ansible_date_time.epoch | int) - 3600) * 1000000000 }}"
+    otel_verify_end_ns: "{{ ((ansible_date_time.epoch | int) + 300) * 1000000000 }}"
+  tasks:
+    - name: Wait until Loki reports ready
+      ansible.builtin.uri:
+        url: "{{ otel_verify_base }}/ready"
+        status_code: 200
+        return_content: true
+      register: otel_verify_ready
+      until: otel_verify_ready.status == 200
+      retries: 30
+      delay: 2
+
+    - name: Push a synthetic OTLP log record
+      ansible.builtin.uri:
+        url: "{{ otel_verify_base }}/otlp/v1/logs"
+        method: POST
+        body_format: json
+        body:
+          resourceLogs:
+            - resource:
+                attributes:
+                  - key: service.name
+                    value:
+                      stringValue: "{{ otel_verify_service }}"
+              scopeLogs:
+                - scope: {}
+                  logRecords:
+                    - body:
+                        stringValue: "{{ otel_verify_token }}"
+                      severityText: INFO
+                      severityNumber: 9
+        status_code: [200, 204]
+
+    - name: Query the log back from Loki
+      ansible.builtin.uri:
+        url: "{{ otel_verify_base }}/loki/api/v1/query_range?query={{ otel_verify_query | urlencode }}&start={{ otel_verify_start_ns }}&end={{ otel_verify_end_ns }}&limit=100&direction=BACKWARD"
+        method: GET
+        return_content: true
+      register: otel_verify_query_result
+      until: >-
+        (otel_verify_query_result.json.data.result | default([]) | length > 0)
+        and (otel_verify_token in (otel_verify_query_result.content | default('')))
+      retries: 15
+      delay: 2
+
+    - name: Assert the pushed log was returned by Loki
+      ansible.builtin.assert:
+        that:
+          - otel_verify_query_result.json.data.result | default([]) | length > 0
+          - otel_verify_token in (otel_verify_query_result.content | default(''))
+        success_msg: "OTLP round-trip OK — service_name={{ otel_verify_service }} found in Loki"
+        fail_msg: "OTLP log not found in Loki within timeout"

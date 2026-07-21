@@ -1,0 +1,7 @@
+---
+- name: Deploy the OpenTelemetry Collector agent (journald -> Loki)
+  hosts: otel_logging_engine
+  become: true
+  gather_facts: true
+  roles:
+    - otel_collector
