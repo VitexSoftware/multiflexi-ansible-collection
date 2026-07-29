@@ -1,4 +1,5 @@
 # Vitexsoftware Multiflexi Collection
+![Packaging: deb](https://img.shields.io/badge/packaging-.deb-red?logo=debian&logoColor=white)
 
 This repository contains the `vitexus.multiflexi` Ansible Collection.
 
