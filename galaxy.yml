@@ -59,7 +59,7 @@ build_ignore:
   - "tox-ansible.ini"
   - ".isort.cfg"
   - "*.tar.gz"
-  - "WARP.md"
+  - "AGENTS.md"
 # A dict controlling use of manifest directives used in building the collection artifact. The key 'directives' is a
 # list of MANIFEST.in style
 # L(directives,https://packaging.python.org/en/latest/guides/using-manifest-in/#manifest-in-commands). The key
