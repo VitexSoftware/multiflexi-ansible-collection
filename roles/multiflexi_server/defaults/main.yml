@@ -50,17 +50,35 @@ multiflexi_server_nodered_url: >-
 multiflexi_server_nodered_catalog_path: /multiflexi-catalog
 multiflexi_server_nodered_catalog_url: "http://127.0.0.1:1880/multiflexi-catalog"
 # Base URL of the MultiFlexi web image endpoints used by the catalog node
-multiflexi_server_nodered_app_url: /multiflexi/
+# and by identity-icon resolution (companylogo / appimage / credentialimage).
+multiflexi_server_nodered_app_url: "http://127.0.0.1/multiflexi/"
+# Optional Host header for loopback fetches when Apache has multiple vhosts
+# on the same IP (otherwise 127.0.0.1 may hit the wrong site). Empty = omit.
+multiflexi_server_nodered_app_host: ""
 # Seed a flow containing a multiflexi-catalog node (overwrites flows.json)
 multiflexi_server_nodered_seed_flow: true
-# Node-RED editor login (adminAuth). A demo user is created so the editor is not
-# left wide open. Set the user to "" to leave node-red's own adminAuth untouched.
-# The password is supplied as a bcrypt hash (node-red format) so no passlib is
-# needed on the control node. Default hash below is for the password "demo".
+# When true, Node-RED adminAuth uses multiflexi-auth.js (login validated against
+# MultiFlexi /login). Palette entities are then filtered by the user's company_user
+# / RBAC scope. When false, fall back to a local bcrypt adminAuth user below.
+multiflexi_server_nodered_multiflexi_auth: true
+# Implicit MultiFlexi API connection for flow runtime (service account).
+# MULTIFLEXI_URL is the API root (no /VitexSoftware/... suffix).
+multiflexi_server_nodered_multiflexi_url: "http://127.0.0.1/multiflexi/api"
+# Bearer token for svc-nodered (or similar). Mint with:
+#   multiflexi-cli token:generate --login svc-nodered
+# Leave empty until the token is provisioned — nodes will error until set.
+multiflexi_server_nodered_api_token: ""
+# Local Node-RED editor login (adminAuth) — only used when multiflexi_auth is false.
+# A demo user is created so the editor is not left wide open. Set the user to ""
+# to leave node-red's own adminAuth untouched.
+# The password is supplied as a bcrypt hash (node-red format). Default hash is "demo".
 # Generate your own with: node-red-admin hash-pw  (or: htpasswd -nBC 12 "" | tr -d ':\n')
 multiflexi_server_nodered_admin_user: demo
 multiflexi_server_nodered_admin_password_hash: "$2b$12$d96b41ded2b5c4e108e23OlAK3OF8IXom3oF7/pcwix2k7jVErPZK"
 multiflexi_server_nodered_admin_permissions: "*"  # "*" = full access, "read" = read-only
+# Comma-separated MultiFlexi logins that get full Node-RED editor access when
+# adminAuth is multiflexi-auth (scope "*"). Everyone else gets read-only.
+multiflexi_server_nodered_admins: "{{ multiflexi_server_nodered_admin_user }}"
 
 # Database connection defaults (override in inventory; do not commit secrets)
 multiflexi_db_host: localhost

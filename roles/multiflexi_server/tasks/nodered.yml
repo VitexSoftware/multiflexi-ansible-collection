@@ -37,7 +37,19 @@
   notify: Restart node-red
   tags: ['multiflexi', 'nodered']
 
-- name: Create the Node-RED demo editor user (adminAuth)
+- name: Wire Node-RED editor login to MultiFlexi (multiflexi-auth)
+  ansible.builtin.blockinfile:
+    path: "{{ multiflexi_server_nodered_userdir }}/settings.js"
+    marker: "    // {mark} ANSIBLE MANAGED Node-RED adminAuth (MultiFlexi)"
+    insertafter: 'module\.exports\s*=\s*\{'
+    block: |4
+          adminAuth: require('node-red-contrib-multiflexi/multiflexi/multiflexi-auth'),
+  become: true
+  when: multiflexi_server_nodered_multiflexi_auth | bool
+  notify: Restart node-red
+  tags: ['multiflexi', 'nodered']
+
+- name: Create a local Node-RED editor user (adminAuth fallback)
   ansible.builtin.blockinfile:
     path: "{{ multiflexi_server_nodered_userdir }}/settings.js"
     marker: "    // {mark} ANSIBLE MANAGED Node-RED admin user"
@@ -52,7 +64,9 @@
               }]
           },
   become: true
-  when: multiflexi_server_nodered_admin_user | length > 0
+  when:
+    - not (multiflexi_server_nodered_multiflexi_auth | bool)
+    - multiflexi_server_nodered_admin_user | length > 0
   notify: Restart node-red
   tags: ['multiflexi', 'nodered']
 
@@ -136,7 +150,50 @@
       value: "{{ multiflexi_server_nodered_url }}"
     - option: NODERED_CATALOG_URL
       value: "{{ multiflexi_server_nodered_catalog_url }}"
+    - option: MULTIFLEXI_URL
+      value: "{{ multiflexi_server_nodered_multiflexi_url }}"
+    - option: MULTIFLEXI_API_TOKEN
+      value: "{{ multiflexi_server_nodered_api_token }}"
   register: multiflexi_nodered_env
+  tags: ['multiflexi', 'nodered']
+
+- name: Export MultiFlexi connection into the Node-RED service environment
+  ansible.builtin.lineinfile:
+    path: /etc/default/node-red
+    regexp: "^{{ item.option }}="
+    line: "{{ item.option }}={{ item.value }}"
+    create: true
+    mode: "0640"
+    owner: root
+    group: "{{ multiflexi_server_nodered_user }}"
+  become: true
+  loop:
+    - option: MULTIFLEXI_URL
+      value: "{{ multiflexi_server_nodered_multiflexi_url }}"
+    - option: MULTIFLEXI_API_TOKEN
+      value: "{{ multiflexi_server_nodered_api_token }}"
+    - option: MULTIFLEXI_NODERED_ADMINS
+      value: "{{ multiflexi_server_nodered_admins }}"
+    - option: MULTIFLEXI_APP_URL
+      value: "{{ multiflexi_server_nodered_app_url }}"
+  when: multiflexi_server_nodered_api_token | length > 0
+  notify: Restart node-red
+  tags: ['multiflexi', 'nodered']
+
+- name: Export MultiFlexi App Host for icon fetches (multi-vhost Apache)
+  ansible.builtin.lineinfile:
+    path: /etc/default/node-red
+    regexp: "^MULTIFLEXI_APP_HOST="
+    line: "MULTIFLEXI_APP_HOST={{ multiflexi_server_nodered_app_host }}"
+    create: true
+    mode: "0640"
+    owner: root
+    group: "{{ multiflexi_server_nodered_user }}"
+  become: true
+  when:
+    - multiflexi_server_nodered_api_token | length > 0
+    - multiflexi_server_nodered_app_host | length > 0
+  notify: Restart node-red
   tags: ['multiflexi', 'nodered']
 
 # Restart Node-RED now (load the seeded flow) before the event processor pushes.

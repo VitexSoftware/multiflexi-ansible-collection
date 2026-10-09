@@ -104,13 +104,35 @@ Defaults are defined in `defaults/main.yml`.
   - Node-RED editor URL linked from the Integrations menu.
 
 - `multiflexi_server_nodered_app_url` (string | optional)
-  - Default: `/multiflexi/`
-  - Base URL of the MultiFlexi web image endpoints the catalog node fetches icons from.
+  - Default: `http://127.0.0.1/multiflexi/`
+  - Written to `MULTIFLEXI_APP_URL`. Base URL of the MultiFlexi web image
+    endpoints used for identity icons (`companylogo.php`, `appimage.php`,
+    `credentialimage.php`).
+
+- `multiflexi_server_nodered_app_host` (string | optional)
+  - Default: `""`
+  - Written to `MULTIFLEXI_APP_HOST` when non-empty. Forces the HTTP `Host`
+    header for loopback icon fetches on multi-vhost Apache.
+
+- `multiflexi_server_nodered_multiflexi_auth` (bool | optional)
+  - Default: `true`
+  - When `true`, Node-RED `adminAuth` uses `multiflexi-auth.js` (login against
+    MultiFlexi `/login`). The editor palette is filtered by `company_user` / RBAC
+    via `GET /nodered/catalog.json`. When `false`, uses the local bcrypt user below.
+
+- `multiflexi_server_nodered_multiflexi_url` (string | optional)
+  - Default: `http://127.0.0.1/multiflexi/api`
+  - Written to `MULTIFLEXI_URL` for the Node-RED process (implicit API base).
+
+- `multiflexi_server_nodered_api_token` (string | optional)
+  - Default: `""`
+  - Bearer token for the Node-RED service account (`MULTIFLEXI_API_TOKEN`).
+    Mint with `multiflexi-cli token:generate --login svc-nodered`.
 
 - `multiflexi_server_nodered_admin_user` (string | optional)
   - Default: `demo`
-  - Creates a Node-RED editor login (`adminAuth`) so the editor is not left open.
-    Set to `""` to leave Node-RED's own `adminAuth` untouched.
+  - Only used when `multiflexi_server_nodered_multiflexi_auth` is `false`.
+    Creates a local Node-RED editor login. Set to `""` to leave adminAuth untouched.
 
 - `multiflexi_server_nodered_admin_password_hash` (string | optional)
   - Default: bcrypt hash of `demo`.
