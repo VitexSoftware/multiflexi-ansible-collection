@@ -1,0 +1,4 @@
+---
+bugfixes:
+  - "module_utils/multiflexi_cli - secret masking now checks every label field (name, key, field, keyword), normalises labels (case, ``-``/space) and masks all other non-empty scalars of a record with a secret label, including ``default``/``defval``."
+  - "galaxy.yml - drop ``license_file`` because Galaxy rejects collections that set both ``license`` and ``license_file`` (1.7.0 could not be imported)."

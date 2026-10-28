@@ -61,20 +61,30 @@ def _mask_json_string(text):
     return text
 
 
+LABEL_KEYS = ("name", "key", "field", "keyword")
+
+
+def _is_secret_label(text):
+    return bool(SECRET_KEY.search(re.sub(r"[\s-]+", "_", text.strip().lower())))
+
+
 def redact(value):
     """Return a copy of value with the content of secret-looking fields masked (recursive).
 
-    Besides fields whose *name* looks secret this also masks the "value" of name/value records
-    (``{"name": "password", "value": "..."}``) and secrets inside JSON-encoded strings.
+    Besides fields whose *name* looks secret this also masks name/value records
+    (``{"name": "password", "value": "...", "default": "..."}``): when any label field
+    (name, key, field, keyword) of a record names a secret, every other non-empty scalar of
+    the record is masked. Secrets inside JSON-encoded strings are masked too.
     """
     if isinstance(value, dict):
-        label = next((value[k] for k in ("name", "key", "field", "keyword") if isinstance(value.get(k), str)), None)
-        label_is_secret = label is not None and SECRET_KEY.search(label)
+        labelled = any(isinstance(value.get(k), str) and _is_secret_label(value[k]) for k in LABEL_KEYS)
         out = {}
         for k, v in value.items():
             if v in (None, ""):
                 out[k] = v
-            elif SECRET_KEY.search(str(k)) or (label_is_secret and str(k) in ("value", "val", "content", "data")):
+            elif SECRET_KEY.search(str(k)):
+                out[k] = MASK
+            elif labelled and k not in LABEL_KEYS and isinstance(v, (str, int, float)) and not isinstance(v, bool):
                 out[k] = MASK
             else:
                 out[k] = redact(v)

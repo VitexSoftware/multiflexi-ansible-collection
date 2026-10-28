@@ -138,3 +138,15 @@ def test_safe_fields_not_applied_with_show_secrets():
     with mock.patch.object(cli.subprocess, "run", return_value=proc(json.dumps([{"id": 1, "payload": "x"}]))):
         out = run(m, singular="credential", plural="credentials", list_command="credential:list", safe_fields=["id"])
     assert out.kw["credentials"] == [{"id": 1, "payload": "x"}]
+
+
+def test_any_label_key_marks_record_secret():
+    rec = {"field": "API-Key", "name": "display", "value": "v", "default": "d", "defval": 5, "enabled": True}
+    out = cli.redact(rec)
+    assert out == {"field": "API-Key", "name": "display", "value": "***", "default": "***", "defval": "***", "enabled": True}
+
+
+def test_label_normalisation_and_non_secret_records_untouched():
+    assert cli.redact({"key": "DB Password", "value": "x"})["value"] == "***"
+    assert cli.redact({"key": "client-secret", "value": "x"})["value"] == "***"
+    assert cli.redact({"name": "host", "key": "db", "value": "h", "default": "d"}) == {"name": "host", "key": "db", "value": "h", "default": "d"}
