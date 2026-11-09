@@ -46,13 +46,13 @@ options:
         type: str
     operation:
         description:
-            - The operation to match (create, update, delete).
-        required: false
-        type: str
-        choices: ['create', 'update', 'delete']
-    condition:
-        description:
-            - Optional additional condition expression.
+            - The operation to match. Known values are C(any), C(create), C(update),
+              C(delete) and the invoice metastates emitted by abraflexi-webhook-acceptor
+              on top of a raw C(update) notification - C(settled) (invoice fully paid),
+              C(remind1), C(remind2), C(remind3), C(penalised), C(storno), C(inventory).
+            - Any other adapter-specific operation string is accepted as-is
+              (same as multiflexi-cli and the REST API), so rules keep working
+              when a new metastate is introduced.
         required: false
         type: str
     priority:
@@ -110,6 +110,24 @@ EXAMPLES = """
     operation: "create"
     env_mapping: '{"INVOICE_ID": "recordid"}'
 
+- name: React to a fully paid invoice (metastate emitted by abraflexi-webhook-acceptor)
+  vitexus.multiflexi.eventrule:
+    state: present
+    eventsource_id: 1
+    runtemplate_id: 55
+    evidence: "faktura-vydana"
+    operation: "settled"
+    env_mapping: '{\"ABRAFLEXI_CUSTOMER\": \"firma\", \"INVOICE_ID\": \"recordid\"}'
+
+- name: React to a changed contract and mail it to the customer
+  vitexus.multiflexi.eventrule:
+    state: present
+    eventsource_id: 1
+    runtemplate_id: 60
+    evidence: "smlouva"
+    operation: "any"
+    env_mapping: '{\"EVENT_RECORD_ID\": \"recordid\"}'
+
 - name: Update an event rule
   vitexus.multiflexi.eventrule:
     state: present
@@ -143,8 +161,7 @@ def run_module():
         eventsource_id=dict(type='int', required=False),
         runtemplate_id=dict(type='int', required=False),
         evidence=dict(type='str', required=False),
-        operation=dict(type='str', required=False, choices=['create', 'update', 'delete']),
-        condition=dict(type='str', required=False),
+        operation=dict(type='str', required=False),
         priority=dict(type='int', required=False, default=0),
         env_mapping=dict(type='str', required=False),
         enabled=dict(type='bool', required=False, default=True),
@@ -188,12 +205,20 @@ def run_module():
                 result['msg'] = f"Retrieved event rule {module.params['eventrule_id']}"
 
                 # Update if any fields provided
+                # Module param name -> CLI option name (eventsource_id maps to --event_source_id)
+                update_fields = {
+                    'eventsource_id': 'event_source_id',
+                    'runtemplate_id': 'runtemplate_id',
+                    'evidence': 'evidence',
+                    'operation': 'operation',
+                    'env_mapping': 'env_mapping',
+                    'priority': 'priority',
+                }
                 update_args = cli_base + ['event-rule:update', '--id', str(module.params['eventrule_id'])]
                 has_updates = False
-                for field in ['eventsource_id', 'runtemplate_id', 'evidence', 'operation',
-                              'condition', 'env_mapping', 'priority']:
+                for field, cli_name in update_fields.items():
                     if module.params.get(field) is not None:
-                        update_args.extend([f'--{field}', str(module.params[field])])
+                        update_args.extend([f'--{cli_name}', str(module.params[field])])
                         has_updates = True
                 if module.params.get('enabled') is not None:
                     update_args.extend(['--enabled', '1' if module.params['enabled'] else '0'])
@@ -229,14 +254,14 @@ def run_module():
                     result['changed'] = True
                 else:
                     create_args = cli_base + ['event-rule:create',
-                        '--eventsource_id', str(module.params['eventsource_id']),
+                        '--event_source_id', str(module.params['eventsource_id']),
                         '--runtemplate_id', str(module.params['runtemplate_id']),
                         '--evidence', module.params['evidence'],
                         '--operation', module.params['operation'],
                         '--enabled', '1' if module.params.get('enabled', True) else '0',
                         '--format', 'json',
                     ]
-                    for field in ['condition', 'env_mapping', 'priority']:
+                    for field in ['env_mapping', 'priority']:
                         if module.params.get(field) is not None:
                             create_args.extend([f'--{field}', str(module.params[field])])
 
@@ -260,7 +285,8 @@ def run_module():
                 result['msg'] = f"Removed event rule {module.params['eventrule_id']}"
 
     except Exception as e:
-        module.fail_json(msg=str(e), **result)
+        result['msg'] = str(e)
+        module.fail_json(**result)
 
     module.exit_json(**result)
 

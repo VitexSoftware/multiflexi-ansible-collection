@@ -1,0 +1,7 @@
+---
+minor_changes:
+  - eventrule - the ``operation`` option now accepts any adapter-specific value (previously restricted to ``create``/``update``/``delete``), so rules can match invoice metastates emitted by abraflexi-webhook-acceptor (``settled``, ``remind1``/``remind2``/``remind3``, ``penalised``, ``storno``, ``inventory``) and ``any``.
+bugfixes:
+  - eventrule - pass ``--event_source_id`` (the actual multiflexi-cli option) instead of the non-existent ``--eventsource_id`` on create/update.
+  - eventrule - drop the non-existent ``condition`` option (the event_rule table and CLI have no such column).
+  - eventrule - report CLI errors correctly instead of crashing with "fail_json() got multiple values for keyword argument 'msg'".
