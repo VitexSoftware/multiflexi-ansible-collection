@@ -197,6 +197,26 @@ def run_module():
             result['msg'] = "Retrieved event rule list"
 
         elif state == 'present':
+            # Idempotence: without an explicit id, look the rule up by its
+            # identity (event source + run template + evidence + operation) so
+            # re-running a playbook updates it instead of creating a duplicate.
+            if not module.params.get('eventrule_id') and all(
+                module.params.get(k) not in (None, '')
+                for k in ('eventsource_id', 'runtemplate_id', 'evidence', 'operation')
+            ):
+                listed = json.loads(run_cli_command(cli_base + ['event-rule:list', '--format', 'json']))
+                if isinstance(listed, list):
+                    for item in listed:
+                        if not isinstance(item, dict) or item.get('id') is None:
+                            continue
+                        src = item.get('event_source_id', item.get('eventsource_id'))
+                        if (str(src) == str(module.params['eventsource_id'])
+                                and str(item.get('runtemplate_id')) == str(module.params['runtemplate_id'])
+                                and str(item.get('evidence')) == str(module.params['evidence'])
+                                and str(item.get('operation')) == str(module.params['operation'])):
+                            module.params['eventrule_id'] = int(item['id'])
+                            break
+
             if module.params.get('eventrule_id'):
                 # Get existing event rule
                 args = cli_base + ['event-rule:get', '--id', str(module.params['eventrule_id']), '--format', 'json']
@@ -215,14 +235,33 @@ def run_module():
                     'priority': 'priority',
                 }
                 update_args = cli_base + ['event-rule:update', '--id', str(module.params['eventrule_id'])]
+                existing = result['eventrule'] if isinstance(result.get('eventrule'), dict) else {}
+
+                def _same(wanted, current):
+                    # env_mapping may be stored as a JSON string or a decoded dict
+                    if wanted is None or current is None:
+                        return False
+                    if isinstance(current, (dict, list)) or str(wanted).lstrip().startswith(('{', '[')):
+                        try:
+                            w = json.loads(wanted) if isinstance(wanted, str) else wanted
+                            c = json.loads(current) if isinstance(current, str) else current
+                            return w == c
+                        except ValueError:
+                            pass
+                    return str(wanted) == str(current)
+
                 has_updates = False
                 for field, cli_name in update_fields.items():
-                    if module.params.get(field) is not None:
+                    if module.params.get(field) is None:
+                        continue
+                    current = existing.get(cli_name, existing.get(field))
+                    if not _same(module.params[field], current):
                         update_args.extend([f'--{cli_name}', str(module.params[field])])
                         has_updates = True
                 if module.params.get('enabled') is not None:
-                    update_args.extend(['--enabled', '1' if module.params['enabled'] else '0'])
-                    has_updates = True
+                    if str(int(bool(module.params['enabled']))) != str(existing.get('enabled')):
+                        update_args.extend(['--enabled', '1' if module.params['enabled'] else '0'])
+                        has_updates = True
 
                 if has_updates:
                     if module.check_mode:

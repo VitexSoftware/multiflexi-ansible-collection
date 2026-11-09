@@ -203,6 +203,17 @@ def run_module():
             result['msg'] = "Retrieved event source list"
 
         elif state == 'present':
+            # Idempotence: without an explicit id, look the source up by name so
+            # re-running a playbook updates the existing record instead of
+            # trying to create a duplicate.
+            if not module.params.get('eventsource_id') and module.params.get('name'):
+                listed = json.loads(run_cli_command(cli_base + ['event-source:list', '--format', 'json']))
+                if isinstance(listed, list):
+                    for item in listed:
+                        if isinstance(item, dict) and item.get('name') == module.params['name'] and item.get('id') is not None:
+                            module.params['eventsource_id'] = int(item['id'])
+                            break
+
             if module.params.get('eventsource_id'):
                 # Get existing event source
                 args = cli_base + ['event-source:get', '--id', str(module.params['eventsource_id']), '--format', 'json']
@@ -312,7 +323,8 @@ def run_module():
             result['msg'] = "Connection test completed"
 
     except Exception as e:
-        module.fail_json(msg=str(e), **result)
+        result['msg'] = str(e)
+        module.fail_json(**result)
 
     module.exit_json(**result)
 

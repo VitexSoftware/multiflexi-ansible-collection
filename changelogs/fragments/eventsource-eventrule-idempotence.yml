@@ -1,0 +1,6 @@
+---
+bugfixes:
+  - eventsource - ``state=present`` without ``eventsource_id`` now looks the event source up by ``name`` and updates it instead of always creating a new one, so playbooks can be re-run.
+  - eventsource - report CLI errors correctly instead of crashing with "fail_json() got multiple values for keyword argument 'msg'".
+  - eventrule - ``state=present`` without ``eventrule_id`` now looks the rule up by event source, run template, evidence and operation instead of always creating a new one.
+  - eventrule - only update (and report ``changed``) when a field really differs from the existing rule.
