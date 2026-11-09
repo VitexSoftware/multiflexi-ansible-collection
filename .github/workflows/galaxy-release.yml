@@ -1,15 +1,21 @@
+---
 name: Publish Ansible Collection to Galaxy
 
-on:
+# Runs when a version tag (vX.Y.Z) is pushed, or manually from the Actions tab.
+# It deliberately does NOT run on "release: published": the tag push already
+# triggers it, and a second run would only try to publish the same version again.
+on: # yamllint disable-line rule:truthy
   push:
     tags:
       - 'v*'
-  release:
-    types: [published]
   workflow_dispatch: {}
 
 permissions:
   contents: read
+
+concurrency:
+  group: galaxy-publish
+  cancel-in-progress: false
 
 jobs:
   build-and-publish:
@@ -28,33 +34,72 @@ jobs:
           python -m pip install --upgrade pip
           pip install ansible-core
 
-      - name: Show Ansible and Galaxy versions
+      - name: Read collection coordinates from galaxy.yml
+        id: meta
         run: |
-          ansible --version
-          ansible-galaxy --version
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import yaml
+          g = yaml.safe_load(open("galaxy.yml"))
+          print(f"namespace={g['namespace']}")
+          print(f"name={g['name']}")
+          print(f"version={g['version']}")
+          PY
+
+      - name: Check that the tag matches galaxy.yml
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "$VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match galaxy.yml version $VERSION"
+            exit 1
+          fi
+
+      - name: Skip when this version is already on Galaxy
+        id: exists
+        env:
+          NAMESPACE: ${{ steps.meta.outputs.namespace }}
+          NAME: ${{ steps.meta.outputs.name }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          url="https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/index/${NAMESPACE}/${NAME}/versions/${VERSION}/"
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$url")
+          echo "Galaxy answered HTTP $code for version $VERSION"
+          if [ "$code" = "200" ]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Version $VERSION is already on Galaxy, nothing to publish"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build collection artifact
+        if: steps.exists.outputs.published != 'true'
         run: ansible-galaxy collection build --force
 
-      - name: List built artifact
-        run: ls -alh *.tar.gz || true
-
       - name: Publish to Ansible Galaxy
+        if: steps.exists.outputs.published != 'true'
         env:
           ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
+          NAMESPACE: ${{ steps.meta.outputs.namespace }}
+          NAME: ${{ steps.meta.outputs.name }}
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -euo pipefail
-          ARTIFACT=$(ls -1t *.tar.gz | head -n1)
-          if [ -z "$ARTIFACT" ]; then echo "No artifact found after build"; exit 1; fi
-          if [ -z "${ANSIBLE_GALAXY_API_KEY:-}" ]; then echo "Secret ANSIBLE_GALAXY_API_KEY not set"; exit 1; fi
+          if [ -z "${ANSIBLE_GALAXY_API_KEY:-}" ]; then
+            echo "::error::Secret ANSIBLE_GALAXY_API_KEY is not set"
+            exit 1
+          fi
+          ARTIFACT="${NAMESPACE}-${NAME}-${VERSION}.tar.gz"
+          test -f "$ARTIFACT" || { echo "::error::$ARTIFACT was not built"; exit 1; }
           echo "Publishing $ARTIFACT to Galaxy..."
           ansible-galaxy collection publish "$ARTIFACT" --token "$ANSIBLE_GALAXY_API_KEY"
 
-      - name: Upload artifact to workflow (optional)
+      - name: Upload artifact to workflow
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: collection-tarball
           path: |
             *.tar.gz
-          if-no-files-found: warn
+          if-no-files-found: ignore
